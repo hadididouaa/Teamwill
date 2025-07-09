@@ -1,0 +1,69 @@
+@use '../utils' as *;
+
+.footer {
+  &__area {
+    background: #000000;
+
+    &-two {
+      margin-top: 10px;
+      background: #000000;
+      padding: 50px 0 20px; // Moved directly here since .footer__top was removed
+    }
+  }
+
+  &__content {
+    @include flexbox();
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; // for responsiveness
+  }
+  &__right{
+    margin-right: 150px;
+  }
+
+  &__widget-title {
+    margin-bottom: 0;
+    color: var(--tg-common-color-white);
+    font-size: 22px;
+    font-weight: 600;
+    position: relative;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 30px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--tg-theme-primary);
+    }
+  }
+  .footer {
+    &__logo {
+      max-width: 150px;
+      margin-bottom: 30px;
+      display: block;
+    }
+  }
+ 
+
+  &__social {
+    @include flexbox();
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 35px;
+
+    li {
+      a {
+        color: var(--tg-common-color-gray-5);
+
+        &:hover {
+          color: var(--tg-theme-secondary);
+        }
+      }
+    }
+  }
+}

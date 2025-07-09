@@ -1,0 +1,63 @@
+.question-section {
+  background-color: #f8f9fa;
+  border-left: 5px solid #0fdf0f;
+  margin-bottom: 20px;
+}
+
+.reponse-section {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  padding: 15px;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+.btn-add-question {
+  background-color: #0ca923;
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.btn-add-response {
+  background-color: #0991a5;
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-remove-question,
+.btn-remove-response {
+  background-color: #ba6210;
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-add-question:hover {
+  background-color: #6fdb73;
+}
+
+.btn-add-response:hover {
+  background-color: #249fb3;
+}
+
+.btn-remove-question:hover,
+.btn-remove-response:hover {
+  background-color: #ddcd3d;
+}

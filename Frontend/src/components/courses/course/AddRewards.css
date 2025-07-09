@@ -1,0 +1,94 @@
+.add-rewards-card {
+  cursor: pointer;
+  width: 250px;
+  height: 300px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px;
+  user-select: none;
+  transition: border-color 0.3s ease;
+}
+
+.add-rewards-card:hover {
+  border-color: #94a84d;
+}
+
+.add-rewards-plus {
+  font-size: 64px;
+  line-height: 1;
+  color: #94a84d;
+}
+
+.add-rewards-text {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #555;
+}
+
+.add-rewards-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.add-rewards-modal {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.add-rewards-modal h2 {
+  margin-bottom: 15px;
+}
+
+.add-rewards-modal form label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.add-rewards-modal form input[type="text"],
+.add-rewards-modal form select,
+.add-rewards-modal form input[type="file"] {
+  width: 100%;
+  padding: 6px 8px;
+  margin-top: 4px;
+  box-sizing: border-box;
+}
+
+.add-rewards-modal form button {
+  padding: 8px 15px;
+  margin-right: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+}
+
+.add-rewards-modal form button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+}
+
+.add-rewards-modal form button[type="button"] {
+  background-color: #ccc;
+  color: #333;
+}
+
+.rewards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}

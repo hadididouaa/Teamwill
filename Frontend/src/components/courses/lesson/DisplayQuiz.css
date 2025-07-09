@@ -1,0 +1,284 @@
+/* Main container styles */
+.quiz-containera {
+  max-width: 600px;
+  margin: auto;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Quiz header */
+.quiz-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.quiz-header h1 {
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Progress bar */
+.progress-bar {
+  padding: 0 1.5rem;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.progress-track {
+  height: 6px;
+  background: #eee;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #2b9654;
+  transition: width 0.3s ease;
+}
+
+/* Question box */
+.question-box {
+  padding: 1.5rem;
+  background: #fff;
+}
+
+.question-display {
+  margin-bottom: 1.5rem;
+}
+
+.question-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.fixed-question {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* Options for multiple/single choice */
+.options-list {
+  margin-bottom: 1.5rem;
+}
+
+.option-item {
+  display: block;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.option-item:hover {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+}
+
+.option-item.selected {
+  background: #e7f5ff;
+  border-color: #189b41;
+}
+
+.option-item input {
+  margin-right: 0.75rem;
+}
+
+/* Match pairs */
+.match-instruction,
+.reorganize-instruction {
+  margin-bottom: 1rem;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.match-pairs {
+  margin-bottom: 1.5rem;
+}
+
+.match-row {
+  display: flex;
+  align-items: center;
+  margin: 0.7rem 0;
+}
+
+.match-row input {
+  padding: 0.7rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  flex: 1;
+  transition: border 0.2s;
+}
+
+.match-row input:focus {
+  border-color: #44d13f;
+  outline: none;
+}
+
+.match-arrow {
+  margin: 0 1rem;
+  color: #7f8c8d;
+  font-size: 1.2rem;
+}
+
+/* Reorganize items */
+.reorganize-list {
+  margin-bottom: 1.5rem;
+}
+
+.reorganize-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.2rem;
+  background: #f0f0f0;
+  margin: 0.6rem 0;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.reorganize-controls {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.reorganize-controls button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: #25ae28;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reorganize-controls button:hover:not(.disabled):not(:disabled) {
+  background: #1db856;
+}
+
+.reorganize-controls button.disabled,
+.reorganize-controls button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* Navigation */
+.quiz-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.nav-btn {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #f1f3f5;
+  color: #495057;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background-color: #e9ecef;
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prev-btn {
+  color: #868e96;
+}
+
+.next-btn {
+  background-color: #39db34;
+  color: white;
+}
+
+.next-btn:hover:not(:disabled) {
+  background-color: #29b929;
+}
+
+/* Pagination dots */
+.pagination-dots {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: center;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #dee2e6;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.dot.active {
+  background: #1b9c53;
+}
+
+/* Submit section */
+.submit-sectiona {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.submit-btne {
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #45db34;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-btna:hover {
+  background-color: #18ab1c;
+}
+
+/* Loading and error states */
+.loading,
+.error {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: #555;
+  background: #f9f9f9;
+  border-radius: 8px;
+}

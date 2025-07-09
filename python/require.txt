@@ -1,0 +1,15 @@
+spacy
+scikit-learn~=1.6.1
+pyttsx3
+matplotlib
+Pillow~=11.1.0
+pandas
+numpy
+drawbot-skia
+moviepy
+torch
+pytesseract~=0.3.13
+pdfplumber
+transformers
+camelot-py[cv]
+docx2txt

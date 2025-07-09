@@ -1,0 +1,12 @@
+#pip install -r requirements.txt:
+torch
+chromadb
+ollama
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+sentence-transformers
+Flask
+flask-cors
+pymupdf

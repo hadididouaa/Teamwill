@@ -1,0 +1,48 @@
+.instructor__profile-form-wrap {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: #fff; /* optional */
+  border-radius: 6px; /* optional */
+  box-shadow: 0 0 10px rgba(0,0,0,0.1); /* optional */
+}
+
+
+.instructor__profile-form {
+  width: 100%;
+}
+
+.form-grp {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.instructor__profile-form label {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.instructor__profile-form input,
+.instructor__profile-form select {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.2s ease;
+}
+
+.instructor__profile-form input:focus,
+.instructor__profile-form select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.form_error {
+  color: red;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}

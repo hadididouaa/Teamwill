@@ -1,0 +1,13 @@
+# Environnement virtuel
+myenv/
+
+# Fichiers Python
+__pycache__/
+*.pyc
+
+# VSCode / PyCharm
+.vscode/
+.idea/
+
+# Autres
+*.log

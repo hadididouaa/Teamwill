@@ -1,0 +1,30 @@
+# IDE and system files
+.idea/
+.vscode/
+Backend/config/.env
+# Node and Python environment
+**/node_modules/
+**/myenv/
+_pycache_/
+*.pyc
+# Log files
+*.log
+# Git metadata/history
+.history/
+.history
+package-lock.json
+Backend/.vscode
+Backend/package-lock.json
+Frontend/package-lock.json
+chatbot/myenv311/
+Backend/node_modules/
+package-lock.json
+# Build and distribution files
+Backend/assets/documents/
+Backend/assets/uploads/
+**/venv/
+__pycache__/
+/Python/output/
+**/bert-structure-labeler/
+**/dataset/
+

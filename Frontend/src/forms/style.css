@@ -1,0 +1,56 @@
+.form-grp {
+    display: flex;
+    flex-direction: column; /* Stack label and input vertically */
+    align-items: left; /* Align items to the left */
+    margin-bottom: 15px;
+    width: 100%; /* Full width of the parent container */
+    text-align: left; /* Align text to the left */
+  }
+  
+  .form-grp label {
+    margin-bottom: 5px; /* Space between label and input */
+    font-weight: 500;
+    color: #000; /* Optional: make label black */
+    text-align: left;
+    width: 100%;  
+  }
+  
+  .form-grp input[type="text"] {
+    width: 100%; /* Better than fixed large width */
+    max-width: 1000px; /* Controls input size without going extreme */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .duree {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: left;
+  }
+  
+  .duree input {
+    width: 150px; /* Set fixed width for the input */
+    max-width: 100%; /* Optional: allow shrinking on smaller screens */
+  }
+  .quiz-form-grp {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    width: 100%;
+    text-align: left;
+    gap: 10px;
+  }
+  
+  .quiz-form-grp input[type="text"] {
+    width: 100%;
+    max-width: 400px; /* More compact for quiz answers */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  
+  
+  
