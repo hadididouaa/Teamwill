@@ -18,63 +18,74 @@ export const ChatProvider = ({ children }) => {
   const [psychologists, setPsychologists] = useState([]);
   const [collaborators, setCollaborators] = useState([]);
 
- 
   // Configuration Axios
   axios.defaults.withCredentials = true;
   axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
-const initializeSocket = useCallback((userId) => {
-  if (!userId) return null;
+  const initializeSocket = useCallback((userId) => {
+    if (!userId) return null;
 
-  const newSocket = initSocket(userId);
+    const newSocket = initSocket(userId);
 
-  newSocket.on('connect', () => {
-    console.log('Socket connected');
-    setIsConnected(true);
-    newSocket.emit('join_user_room', { userId });
-  });
+    newSocket.on('connect', () => {
+      console.log('Socket connected');
+      setIsConnected(true);
+    });
 
-  newSocket.on('new_message', (message) => {
-    console.log('New message received:', message);
-    console.log('Current chat partner:', currentChat?.partner?.id);
-    console.log('Message participants:', message.sender.id, message.receiver.id);
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected');
+      setIsConnected(false);
+    });
 
-    // Vérifier si le message appartient à la conversation actuelle
-    const isForCurrentChat = currentChat && (
-      message.sender.id === currentChat.partner.id || 
-      message.receiver.id === currentChat.partner.id
-    );
+    newSocket.on('online_users', (users) => {
+      setOnlineUsers(users.map(u => u.id));
+      updateConversationsOnlineStatus(users.map(u => u.id));
+    });
 
-    // Mettre à jour les messages si c'est la conversation active
-    if (isForCurrentChat) {
-      setMessages(prev => {
-        // Éviter les doublons
-        if (!prev.some(m => m.id === message.id)) {
-          return [...prev, message];
-        }
-        return prev;
-      });
-    }
+    newSocket.on('new_message', (message) => {
+      console.log('New message received:', message);
+      
+      if (currentChat && 
+          (message.sender.id === currentChat.partner.id || 
+           message.receiver.id === currentChat.partner.id)) {
+        setMessages(prev => [...prev, message]);
+      }
+      
+      updateConversationLastMessage(message);
+    });
 
-    // Toujours mettre à jour les conversations
-    updateConversationLastMessage(message);
-  });
+    newSocket.on('message_deleted', ({ messageId }) => {
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      updateConversationsAfterDelete(messageId);
+    });
 
-  // Gestion des erreurs
-  newSocket.on('connect_error', (err) => {
-    console.error('Socket connection error:', err);
-  });
+    newSocket.on('message_read', ({ messageId }) => {
+      setMessages(prev => 
+        prev.map(msg => msg.id === messageId ? { ...msg, isRead: true } : msg)
+      );
+      updateConversationReadStatus(messageId);
+    });
 
-  setSocket(newSocket);
-  return newSocket;
-}, [currentChat?.partner?.id]); // Seulement dépendant de l'ID du partenaire
+    newSocket.on('typing_status', ({ userId, isTyping, username }) => {
+      if (currentChat?.partner.id === userId) {
+        setTypingStatus(isTyping ? `${username} is typing...` : null);
+      }
+    });
 
-  const updateConversationsOnlineStatus = (users) => {
+    newSocket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err);
+    });
+
+    setSocket(newSocket);
+    return newSocket;
+  }, [currentChat]);
+
+  const updateConversationsOnlineStatus = (onlineUserIds) => {
     setConversations(prev => prev.map(conv => ({
       ...conv,
       partner: {
         ...conv.partner,
-        isOnline: users.includes(conv.partner.id)
+        isOnline: onlineUserIds.includes(conv.partner.id)
       }
     })));
   };
@@ -92,43 +103,78 @@ const initializeSocket = useCallback((userId) => {
       })
     );
   };
- const fetchCurrentUser = useCallback(async () => {
+
+  const updateConversationReadStatus = (messageId) => {
+    setConversations(prev =>
+      prev.map(conv => {
+        if (conv.lastMessage?.id === messageId) {
+          return {
+            ...conv,
+            lastMessage: {
+              ...conv.lastMessage,
+              isRead: true
+            },
+            unreadCount: Math.max(0, conv.unreadCount - 1)
+          };
+        }
+        return conv;
+      })
+    );
+  };
+
+  const updateConversationLastMessage = (message) => {
+    setConversations(prev => {
+      const existingConv = prev.find(conv => 
+        [message.sender.id, message.receiver.id].includes(conv.partner.id)
+      );
+      
+      const partner = message.sender.id === user?.id ? message.receiver : message.sender;
+      const isOnline = onlineUsers.includes(partner.id);
+      
+      return existingConv 
+        ? prev.map(conv => 
+            conv.partner.id === partner.id 
+              ? { 
+                  ...conv, 
+                  lastMessage: message,
+                  partner: { ...conv.partner, isOnline },
+                  unreadCount: message.receiverId === user?.id && !message.isRead 
+                    ? conv.unreadCount + 1 
+                    : conv.unreadCount
+                } 
+              : conv
+          )
+        : [...prev, {
+            partner: { ...partner, isOnline },
+            lastMessage: message,
+            unreadCount: message.receiverId === user?.id && !message.isRead ? 1 : 0
+          }];
+    });
+  };
+
+  const fetchCurrentUser = useCallback(async () => {
     try {
       const { data } = await axios.get('/users/auth');
-      if (!data || !data.roleUtilisateur) {
-        throw new Error('Données utilisateur incomplètes');
-      }
       setUser(data);
       return data;
     } catch (error) {
-      console.error('Erreur récupération utilisateur:', error);
-      if (error.response?.status === 401) {
-        window.location.href = '/login?session_expired=true';
-      }
+      console.error('Error fetching user:', error);
       return null;
     }
   }, []);
+
   useEffect(() => {
     let socketInstance;
     if (user?.id) {
       socketInstance = initializeSocket(user.id);
-
-      const pingInterval = setInterval(() => {
-        if (socketInstance && isConnected) {
-          socketInstance.emit('ping', () => {
-            console.log('Ping successful');
-          });
-        }
-      }, 25000);
-
-      return () => {
-        clearInterval(pingInterval);
-        if (socketInstance) {
-          disconnectSocket(socketInstance);
-        }
-      };
     }
-  }, [user?.id, initializeSocket, isConnected]);
+
+    return () => {
+      if (socketInstance) {
+        disconnectSocket(socketInstance);
+      }
+    };
+  }, [user?.id, initializeSocket]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -144,8 +190,6 @@ const initializeSocket = useCallback((userId) => {
     };
     initialize();
   }, [fetchCurrentUser]);
-
- 
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
@@ -181,64 +225,55 @@ const initializeSocket = useCallback((userId) => {
     }
   }, []);
 
-const sendMessage = async (content, receiverId, attachments = []) => {
-  try {
-    const formData = new FormData();
-    formData.append('content', content);
-    formData.append('receiverId', receiverId);
-    attachments.forEach(file => formData.append('attachments', file));
-
-    // Envoyer via HTTP
-    const { data } = await axios.post('/api/messages/send', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-
-    // Émettre également via socket
-    if (socket) {
-      socket.emit('send_message', {
-        receiverId,
-        content,
-        attachments: data.attachments || []
-      });
-    }
-
-    updateConversationLastMessage(data);
-    return data;
-  } catch (error) {
-    console.error('Erreur envoi message:', error);
-    throw error;
-  }
-};
-  const deleteMessage = async (messageId) => {
+  const sendMessage = async (content, receiverId, attachments = []) => {
     try {
-      await axios.delete(`/api/messages/delete/${messageId}`);
-      setMessages(prev => prev.filter(msg => msg.id !== messageId));
-      updateConversationsAfterDelete(messageId);
-      socket.emit('delete_message', { messageId });
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('receiverId', receiverId);
+      attachments.forEach(file => formData.append('attachments', file));
+
+      const { data } = await axios.post('/api/messages/send', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      return data;
     } catch (error) {
-      console.error('Erreur suppression message:', error);
+      console.error('Error sending message:', error);
       throw error;
     }
   };
 
+const deleteMessage = async (messageId) => {
+  try {
+    if (socket) {
+      socket.emit('delete_message', { messageId });
+    }
+    // Modifiez cette ligne pour utiliser le bon endpoint
+    await axios.delete(`/api/messages/delete/${messageId}`);
+  } catch (error) {
+    // Ne montrez pas d'erreur si c'est juste un problème d'API
+    // car la suppression en temps réel via socket fonctionne
+    console.error('Error in API call (silenced for user):', error);
+  }
+};
+
   const markAsRead = async (messageId) => {
     try {
-      const message = await axios.get(`/api/messages/conversation/${currentChat?.partner.id}`);
-      const targetMessage = message.data.find(msg => msg.id === messageId);
-      if (!targetMessage) {
-        console.error('Message not found:', messageId);
-        return;
+      if (socket) {
+        socket.emit('mark_read', { messageId });
       }
       await axios.put(`/api/messages/mark-read/${messageId}`);
-      setMessages(prev => 
-        prev.map(msg => msg.id === messageId ? { ...msg, isRead: true } : msg)
-      );
-      socket.emit('mark_read', { 
-        messageId, 
-        senderId: targetMessage.senderId 
-      });
     } catch (error) {
-      console.error('Erreur marquage lu:', error);
+      console.error('Error marking message as read:', error);
+    }
+  };
+
+  const sendTypingStatus = (isTyping) => {
+    if (socket && currentChat) {
+      socket.emit('typing', {
+        receiverId: currentChat.partner.id,
+        isTyping
+      });
     }
   };
 
@@ -280,45 +315,6 @@ const sendMessage = async (content, receiverId, attachments = []) => {
       console.error('Erreur collaborateurs:', error);
     }
   }, []);
-
-  const updateConversationLastMessage = (message) => {
-    setConversations(prev => {
-      const existingConv = prev.find(conv => 
-        [message.sender.id, message.receiver.id].includes(conv.partner.id)
-      );
-      
-      const partner = message.sender.id === user?.id ? message.receiver : message.sender;
-      const isOnline = onlineUsers.includes(partner.id);
-      
-      return existingConv 
-        ? prev.map(conv => 
-            conv.partner.id === partner.id 
-              ? { 
-                  ...conv, 
-                  lastMessage: message,
-                  partner: { ...conv.partner, isOnline },
-                  unreadCount: message.receiverId === user?.id && !message.isRead 
-                    ? conv.unreadCount + 1 
-                    : conv.unreadCount
-                } 
-              : conv
-          )
-        : [...prev, {
-            partner: { ...partner, isOnline },
-            lastMessage: message,
-            unreadCount: message.receiverId === user?.id && !message.isRead ? 1 : 0
-          }];
-    });
-  };
-
-  const sendTypingStatus = (isTyping) => {
-    if (socket && currentChat) {
-      socket.emit('typing', {
-        receiverId: currentChat.partner.id,
-        isTyping
-      });
-    }
-  };
 
   const contextValue = {
     user,

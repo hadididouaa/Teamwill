@@ -26,7 +26,9 @@ router.get('/conversation/:userId', authenticateToken, getConversation);
 router.get('/unread-count', authenticateToken, getUnreadCount);
 router.put('/mark-read/:messageId', authenticateToken, markAsRead);
 router.put('/mark-all-read/:userId', authenticateToken, markAllAsRead);
-router.delete('/delete/:messageId', authenticateToken, deleteMessage);
+
+// Dans messageRoutes.js
+router.delete('/delete/:messageId', authenticateToken, deleteMessage); // Modifiez cette ligne
 router.get('/contacts', authenticateToken, getMessageContacts);
 router.get('/online-users', authenticateToken, getOnlineUsers);
 router.get('/conversations', authenticateToken, getAllConversations);

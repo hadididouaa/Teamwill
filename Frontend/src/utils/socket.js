@@ -14,7 +14,6 @@ export const initSocket = (userId) => {
     }
   });
 
-  // Gestion explicite de la connexion
   socket.on('connect', () => {
     console.log('Socket connected, joining room for user:', userId);
     socket.emit('join_user_room', { userId });

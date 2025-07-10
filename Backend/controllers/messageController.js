@@ -41,7 +41,6 @@ const handleMessageAttachments = async (req, res, next) => {
     next();
   });
 };
-
 const sendMessage = async (req, res) => {
   try {
     const { receiverId, content } = req.body;
@@ -51,9 +50,9 @@ const sendMessage = async (req, res) => {
     const receiver = await User.findByPk(receiverId);
     if (!receiver) {
       return res.status(404).json({ message: "Destinataire non trouvé" });
-      }
+    }
       
-      const messageData = {
+    const messageData = {
       content: content || '',
       senderId,
       receiverId,
@@ -70,53 +69,23 @@ const sendMessage = async (req, res) => {
       }));
     }
 
-  const message = await Message.create(messageData);
+    const message = await Message.create(messageData);
 
     const populatedMessage = await Message.findByPk(message.id, {
       include: [
-        { 
-          model: User, 
-          as: 'sender', 
-          attributes: ['id', 'username', 'photo', 'roleUtilisateur'] 
-        },
-        { 
-          model: User, 
-          as: 'receiver', 
-          attributes: ['id', 'username', 'photo', 'roleUtilisateur'] 
-        }
+        { model: User, as: 'sender' },
+        { model: User, as: 'receiver' }
       ]
     });
-// Conversion en objet simple pour Socket.IO
-    const messageToSend = {
-      ...populatedMessage.get({ plain: true }),
-      sender: populatedMessage.sender.get({ plain: true }),
-      receiver: populatedMessage.receiver.get({ plain: true })
-    };
 
-    // Debug: Vérifiez les rooms actives
-    console.log(`Envoi à user_${receiverId} et user_${senderId}`);
-    console.log('Salles actives:', io.sockets.adapter.rooms);
+    // Émettre via socket.io
+    io.to(`user_${receiverId}`).emit('new_message', populatedMessage.toJSON());
+    io.to(`user_${senderId}`).emit('new_message', populatedMessage.toJSON());
 
-    // Émission des messages
-    io.to(`user_${receiverId}`).emit('new_message', messageToSend);
-    io.to(`user_${senderId}`).emit('new_message', messageToSend);
-
-    // Notification
-    io.emit('message_notification', {
-      messageId: message.id,
-      senderId,
-      receiverId,
-      senderName: populatedMessage.sender.username
-    });
-
-    res.status(201).json(messageToSend);
+    res.status(201).json(populatedMessage);
   } catch (error) {
     console.error('Erreur envoi message:', error);
-    res.status(500).json({ 
-      message: "Server error", 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -190,10 +159,7 @@ const getConversation = async (req, res) => {
       }
     );
 
-    const io = req.app.get('io');
-    io.to(`user_${otherUserId}`).emit('messages_read', {
-      readBy: userId
-    });
+  
 
     res.json(messages);
   } catch (error) {
@@ -217,41 +183,23 @@ const getUnreadCount = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
-
 const markAsRead = async (req, res) => {
   try {
-    const messageId = req.params.messageId;
+    const { messageId } = req.params;
     const userId = req.user.id;
-    
+  
+
     const message = await Message.findByPk(messageId);
-    if (!message) {
-      return res.status(404).json({ message: "Message non trouvé" });
+    if (!message || message.receiverId !== userId) {
+      return res.status(403).json({ error: "Unauthorized" });
     }
-    
-    if (message.receiverId !== userId) {
-      return res.status(403).json({ message: "Non autorisé" });
-    }
-    
-    message.isRead = true;
-    await message.save();
-    
-      const io = req.app.get('io');
-    io.to(`user_${message.senderId}`).emit('message_read', {
-      messageId: message.id,
-      readBy: userId,
-      timestamp: new Date().toISOString()
-    });
-    io.to(`user_${userId}`).emit('message_read', {
-      messageId: message.id,
-      readBy: userId,
-      timestamp: new Date().toISOString()
-    });
-    
-    
+
+    await message.update({ isRead: true });
+
+    // Émission socket déjà gérée par le handler socket.io
     res.json(message);
   } catch (error) {
-    console.error('Error marking message as read:', error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -284,30 +232,23 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
+// Dans messageController.js
 const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
     const userId = req.user.id;
 
     const message = await Message.findByPk(messageId);
-    if (!message) {
-      return res.status(404).json({ message: "Message non trouvé" });
+    if (!message) return res.status(404).json({ error: "Message not found" });
+
+    if (![message.senderId, message.receiverId].includes(userId)) {
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
-    if (message.senderId !== userId && message.receiverId !== userId) {
-      return res.status(403).json({ message: "Non autorisé" });
-    }
-const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
     await message.destroy();
-
-     // Notify both users
-    const io = req.app.get('io');
-    io.to(`user_${otherUserId}`).emit('message_deleted', { messageId: message.id });
-    io.to(`user_${userId}`).emit('message_deleted', { messageId: message.id });
-   res.json({ success: true });
+    res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting message:', error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 const getMessageContacts = async (req, res) => {

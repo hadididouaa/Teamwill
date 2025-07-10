@@ -28,41 +28,52 @@ const ChatWindow = () => {
   const [attachments, setAttachments] = useState([]);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, typingStatus]);
 
-  // Supprimez le useEffect qui écoute les nouveaux messages, cela est déjà géré dans le contexte
+  useEffect(() => {
+    if (!socket || !currentChat || !messages.length) return;
 
-// Modifiez la fonction handleSend pour bien émettre via le socket
-const handleSend = async () => {
-  if (!messageInput.trim() && attachments.length === 0) return;
+    const unreadMessages = messages.filter(
+      msg => msg.senderId === currentChat.partner.id && !msg.isRead
+    );
 
-  setIsSending(true);
-  try {
-    const sentMessage = await sendMessage(messageInput, currentChat.partner.id, attachments);
-    setMessageInput('');
-    setAttachments([]);
-    sendTypingStatus(false);
-    
-    // Le socket émission est déjà géré dans sendMessage du contexte
-    console.log('Message sent successfully', sentMessage);
-  } catch (error) {
-    console.error('Failed to send message:', error);
-    antdMessage.error('Failed to send message');
-  } finally {
-    setIsSending(false);
-  }
-};
+    unreadMessages.forEach(msg => {
+      markAsRead(msg.id);
+    });
+  }, [messages, currentChat, socket, markAsRead]);
 
-  const handleDelete = async (messageId) => {
+  const handleSend = async () => {
+    if (!messageInput.trim() && attachments.length === 0) return;
+
+    setIsSending(true);
     try {
-      await deleteMessage(messageId);
-      antdMessage.success('Message deleted');
-      console.log('Message deleted:', messageId);
+      await sendMessage(messageInput, currentChat.partner.id, attachments);
+      setMessageInput('');
+      setAttachments([]);
+      sendTypingStatus(false);
     } catch (error) {
-      console.error('Failed to delete message:', error);
-      antdMessage.error('Failed to delete message');
+      console.error('Failed to send message:', error);
+      antdMessage.error('Failed to send message');
+    } finally {
+      setIsSending(false);
     }
   };
+
+  const handleDelete = async (messageId) => {
+  try {
+    await deleteMessage(messageId);
+    // Pas besoin de message de succès car la suppression est visible immédiatement
+  } catch (error) {
+    // Seulement afficher si ce n'est pas une 404
+    if (!error.response || error.response.status !== 404) {
+      antdMessage.error('Delete failed');
+    }
+  }
+};
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -71,7 +82,7 @@ const handleSend = async () => {
       return;
     }
     
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 50 * 1024 * 1024;
     const oversizedFiles = files.filter(file => file.size > maxSize);
     
     if (oversizedFiles.length > 0) {
@@ -81,12 +92,10 @@ const handleSend = async () => {
     
     setAttachments([...attachments, ...files]);
     e.target.value = null;
-    console.log('Attachments added:', files.map(f => f.name));
   };
 
   const removeAttachment = (index) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
-    console.log('Attachment removed at index:', index);
   };
 
   const handleKeyPress = (e) => {
@@ -96,14 +105,38 @@ const handleSend = async () => {
     }
   };
 
-  const handleInputChange = (e) => {
-    setMessageInput(e.target.value);
-    sendTypingStatus(!!e.target.value);
-  };
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const handleInputChange = (e) => {
+    setMessageInput(e.target.value);
+    
+    if (socket && currentChat) {
+      sendTypingStatus(!!e.target.value);
+      
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set a new timeout to stop typing indication after 3 seconds
+      typingTimeoutRef.current = setTimeout(() => {
+        sendTypingStatus(false);
+      }, 3000);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (socket && currentChat) {
+        sendTypingStatus(false);
+      }
+    };
+  }, [socket, currentChat]);
 
   if (!currentChat) {
     return (
