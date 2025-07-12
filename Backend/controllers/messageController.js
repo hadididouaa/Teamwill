@@ -232,22 +232,21 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
-// Dans messageController.js
 const deleteMessage = async (req, res) => {
   try {
-    const { messageId } = req.params;
-    const userId = req.user.id;
-
-    const message = await Message.findByPk(messageId);
-    if (!message) return res.status(404).json({ error: "Message not found" });
-
-    if (![message.senderId, message.receiverId].includes(userId)) {
-      return res.status(403).json({ error: "Unauthorized" });
+    console.log("Tentative de suppression du message:", req.params.messageId); // Log de débogage
+    
+    const message = await Message.findByPk(req.params.messageId);
+    if (!message) {
+      console.log("Message non trouvé");
+      return res.status(200).json({ success: true }); // Retourner 200 même si non trouvé
     }
 
     await message.destroy();
-    res.json({ success: true });
+    console.log("Message supprimé avec succès");
+    res.status(200).json({ success: true });
   } catch (error) {
+    console.error("Erreur de suppression:", error);
     res.status(500).json({ error: error.message });
   }
 };

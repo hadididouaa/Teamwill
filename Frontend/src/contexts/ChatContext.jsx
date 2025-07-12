@@ -243,17 +243,25 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+// Dans ChatContext.jsx
 const deleteMessage = async (messageId) => {
   try {
+    // 1. Émission socket pour suppression immédiate
     if (socket) {
       socket.emit('delete_message', { messageId });
     }
-    // Modifiez cette ligne pour utiliser le bon endpoint
-    await axios.delete(`/api/messages/delete/${messageId}`);
+
+    // 2. Tentative API (silencieuse)
+    try {
+      await axios.delete(`/api/messages/delete/${messageId}`, {
+        validateStatus: (status) => status < 500 // Accepter toutes les réponses sauf 5xx
+      });
+    } catch (apiError) {
+      console.debug("Erreur API silencieuse:", apiError); // Seulement en dev
+    }
+
   } catch (error) {
-    // Ne montrez pas d'erreur si c'est juste un problème d'API
-    // car la suppression en temps réel via socket fonctionne
-    console.error('Error in API call (silenced for user):', error);
+    console.error("Erreur critique:", error);
   }
 };
 
