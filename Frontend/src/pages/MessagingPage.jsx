@@ -71,9 +71,13 @@ const MessagingPage = () => {
               offset={[-5, 30]}
             >
               <Avatar 
-                src={contact.photo ? `${axios.defaults.baseURL}${contact.photo}` : '/assets/img/user.png'} 
-                icon={<UserOutlined />} 
-              />
+  src={
+    contact.photo 
+      ? `${axios.defaults.baseURL}/uploads/${contact.photo}`
+      : '/assets/img/user.png'
+  } 
+  icon={<UserOutlined />} 
+/>
             </Badge>
           }
           title={
