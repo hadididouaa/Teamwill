@@ -4,6 +4,7 @@ import UseSticky from "../../hooks/UseSticky"
 import { Link, useNavigate } from "react-router-dom"
 import InjectableSvg from "../../hooks/InjectableSvg"
 import HeaderSearch from "./menu/HeaderSearch"
+
 import axios from "axios"
 const HeaderFour = () => {
   const [isSearch, setIsSearch] = useState(false)
@@ -45,8 +46,10 @@ const HeaderFour = () => {
                           <i className="flaticon-search"></i>
                         </a>
                       </li>
+                      
                       <li className="offCanvas-menu">
                         <a href="#" className="menu-tigger" onClick={(e) => e.preventDefault()} style={{ cursor: "default" }}>
+                           
                           <button
                             type="button"
                             onClick={(e) => {

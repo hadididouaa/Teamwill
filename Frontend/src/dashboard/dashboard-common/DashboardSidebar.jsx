@@ -12,7 +12,7 @@ const sidebar_data = [
       { id: 2, link: "/questionnaires/create", icon: "fas fa-plus-circle", title: "Create a questionnaire" },
       { id: 3, link: "/QuestionnaireList", icon: "fas fa-list", title: "Questionnaires" },
       { id: 4, link: "/all-resultss", icon: "fas fa-chart-bar", title: "Results" },
-      { id: 5, link: "/messages", icon: "fas fa-envelope", title: "Messages" },
+     
       { id: 6, link: "/profile", icon: "fas fa-user-circle", title: "My Profile" }
     ]
   },
@@ -22,7 +22,7 @@ const sidebar_data = [
     sidebar_details: [
       { id: 7, link: "/Cquestionnaires", icon: "fas fa-chalkboard-teacher", title: "Questionnaires" },
       { id: 8, link: "/results", icon: "fas fa-video", title: "My Result" },
-      { id: 9, link: "/messages", icon: "fas fa-envelope", title: "Messages" },
+  
       { id: 10, link: "/profile", icon: "fas fa-user-circle", title: "My Profile" }
     ],
   },

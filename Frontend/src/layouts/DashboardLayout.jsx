@@ -7,13 +7,16 @@ import Footer from '../layouts/footers/Footer';
 import DashboardBanner from "../dashboard/dashboard-common/DashboardBanner";
 import DashboardSidebar from "../dashboard/dashboard-common/DashboardSidebar";
 import ChatWidget from '../components/chat/ChatWidget';
+import GlobalChatWidget from '../components/chat/GlobalChatWidget';
 
 
 const DashboardLayout = ({ pageTitle, children }) => {
-  return (
+  return ( 
     <Wrapper>
+      
       <SEO pageTitle={pageTitle} />
       <HeaderFour />
+          <GlobalChatWidget /> 
       <main className="main-area fix">
         <Breadcrumb />
         <section className="dashboard__area section-pb-120">
@@ -31,9 +34,11 @@ const DashboardLayout = ({ pageTitle, children }) => {
 </div>
           </div>        
           <ChatWidget/>
+          
         </section>
       </main>
-      <Footer />     
+      <Footer />  
+    
     </Wrapper>
   );
 };

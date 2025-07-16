@@ -55,7 +55,17 @@ const AppNavigation = () => {
         <Route path="/welcome" element={<WelcomePage />} />
         {/* PRIVATE ROUTES */}
         <Route element={<PrivateRoute />}>
-          <Route path="/dashboard" element={<InstructorDashboard />} />
+                 <Route 
+    path="/dashboard" 
+    element={
+   
+        <InstructorDashboard />
+   
+    } 
+  />
+  {/* Other dashboard routes */}
+
+
           <Route path="/listUsers" element={<InstructorProfile />} />
           <Route path="/editUser/:id" element={<UserSetting />} />
           <Route path="/Myformations" element={<MyCourse />} />
@@ -72,9 +82,9 @@ const AppNavigation = () => {
           <Route 
             path="/messages" 
             element={
-              <ChatProvider>
+             
                 <MessagingPage />
-              </ChatProvider>
+              
             } 
           />
 

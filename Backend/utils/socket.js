@@ -50,59 +50,73 @@ const initializeSocket = (server) => {
     onlineUsers.set(socket.user.id, socket.user);
     io.emit('online_users', Array.from(onlineUsers.values()));
 
-    // Gestion des appels vidéo
-    socket.on('initiate_video_call', ({ receiverId, callerId, callerName, roomName }) => {
-      // Vérifier que l'utilisateur est autorisé à appeler
-      if (socket.user.id !== callerId) return;
+    // Ajoutez en haut du fichier
+const activeCalls = new Map();
 
-      // Enregistrer l'appel
-      activeCalls.set(roomName, {
-        callerId,
-        receiverId,
-        roomName,
-        timestamp: new Date()
-      });
+// Dans la partie connection, ajoutez/modifiez ces handlers :
+socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomName }) => {
+  const callerId = socket.user.id;
+  console.log('Received initiate_video_call:', { callerId, receiverId, roomName });
 
-      // Envoyer l'invitation
-      io.to(`user_${receiverId}`).emit('incoming_video_call', {
-        callerId,
-        callerName,
-        roomName
-      });
-    });
+  if (!callerId || !receiverId) {
+    console.error('Invalid caller or receiver ID');
+    return;
+  }
 
-    socket.on('answer_video_call', ({ callerId, answer, roomName }) => {
-      const call = activeCalls.get(roomName);
-      if (!call || call.callerId !== callerId) return;
+  activeCalls.set(roomName, {
+    callerId,
+    receiverId,
+    roomName,
+    timestamp: new Date(),
+  });
+  console.log('Active calls updated:', Array.from(activeCalls.entries()));
 
-      // Informer l'appelant de la réponse
-      io.to(`user_${callerId}`).emit('video_call_answer', {
-        answer,
-        roomName,
-        respondentId: socket.user.id
-      });
+  io.to(`user_${receiverId}`).emit('incoming_video_call', {
+    callerId,
+    callerName,
+    callerPhoto,
+    roomName,
+    respondentId: receiverId,
+  });
+  console.log('Emitted incoming_video_call to:', `user_${receiverId}`);
+});
 
-      if (answer) {
-        // Les deux utilisateurs rejoignent la room Jitsi
-        io.to(`user_${callerId}`).emit('join_video_call', { roomName });
-        io.to(`user_${socket.user.id}`).emit('join_video_call', { roomName });
-      } else {
-        // Appel refusé, nettoyer
-        activeCalls.delete(roomName);
-      }
-    });
+socket.on('answer_video_call', ({ roomName, answer }) => {
+  const call = activeCalls.get(roomName);
+  if (!call) return;
 
-    socket.on('end_video_call', ({ roomName }) => {
-      const call = activeCalls.get(roomName);
-      if (!call) return;
+  // Vérifier que l'utilisateur est le destinataire
+  if (socket.user.id !== call.receiverId) return;
 
-      // Informer l'autre participant
-      const otherUserId = call.callerId === socket.user.id ? call.receiverId : call.callerId;
-      io.to(`user_${otherUserId}`).emit('video_call_ended', { roomName });
+  // Informer l'appelant de la réponse
+  io.to(`user_${call.callerId}`).emit('video_call_answer', {
+    answer,
+    roomName,
+    respondentId: socket.user.id,
+    respondentName: socket.user.username
+  });
 
-      // Nettoyer
-      activeCalls.delete(roomName);
-    });
+  if (answer) {
+    // Les deux utilisateurs rejoignent la room Jitsi
+    io.to(`user_${call.callerId}`).emit('join_video_call', { roomName });
+    io.to(`user_${call.receiverId}`).emit('join_video_call', { roomName });
+  } else {
+    // Appel refusé, nettoyer
+    activeCalls.delete(roomName);
+  }
+});
+
+socket.on('end_video_call', ({ roomName }) => {
+  const call = activeCalls.get(roomName);
+  if (!call) return;
+
+  // Informer l'autre participant
+  const otherUserId = call.callerId === socket.user.id ? call.receiverId : call.callerId;
+  io.to(`user_${otherUserId}`).emit('video_call_ended', { roomName });
+
+  // Nettoyer
+  activeCalls.delete(roomName);
+});
 
     // Gestion de la déconnexion
     socket.on('disconnect', () => {

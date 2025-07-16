@@ -198,7 +198,7 @@
 .attachment-remove {
   color: #ff4d4f;
 }
-/* Ajoutez ceci à votre fichier CSS */
+
 .connection-status {
   position: relative;
 }
@@ -212,5 +212,41 @@
   padding: 2px 6px;
   border-radius: 10px;
   font-size: 10px;
-  z-index: 1;
+  zIndex: 1;
 }
+
+.ant-notification-notice-content {
+  max-width: 300px;
+}
+
+.call-notification {
+  padding: 10px;
+}
+
+.call-notification-buttons {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.floating-chat-window {
+  transition: all 0.3s ease;
+}
+
+.floating-chat-window:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.embedded-chat {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.minimized-chat-tab {
+  transition: all 0.2s ease;
+}
+
+.minimized-chat-tab:hover {
+  background-color: #f0f0f0;
+}
+

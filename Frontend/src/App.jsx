@@ -5,7 +5,7 @@ import AppNavigation from './navigation/Navigation';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
+import { ChatProvider } from './contexts/ChatContext';
 
 function App() {
 
@@ -14,7 +14,8 @@ function App() {
       <HelmetProvider>       
         <div className="main-page-wrapper">
           <ToastContainer />
-            <AppNavigation />
+           <ChatProvider>
+            <AppNavigation /></ChatProvider>
         </div>
       </HelmetProvider> 
     </Provider>

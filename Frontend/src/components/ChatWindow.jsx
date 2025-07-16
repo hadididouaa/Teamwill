@@ -1,17 +1,16 @@
+// frontend/src/components/ChatWindow.jsx
 import React, { useContext, useRef, useState, useEffect } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
-import { Avatar, Input, Button, List, Typography, Spin, message as antdMessage, Badge, Empty, Modal } from 'antd';
+import { Avatar, Input, Button, List, Typography, Spin, notification, Badge, Empty } from 'antd';
 import { SendOutlined, UserOutlined, CheckOutlined, PaperClipOutlined, DeleteOutlined, CloseOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import axios from 'axios';
 import { JitsiMeeting } from '@jitsi/react-sdk';
 import callSound from '../assets/sounds/microsoft_teams_call.mp3';
 
 const { Text } = Typography;
 
-const ChatWindow = () => {
-  const { 
-    currentChat,
+const ChatWindow = ({ currentChat, embedded = false }) => {
+  const {
     user,
     messages,
     loading,
@@ -23,24 +22,21 @@ const ChatWindow = () => {
     deleteMessage,
     markAsRead,
     sendTypingStatus,
-    setMessages
+    setMessages,
   } = useContext(ChatContext);
 
   const [messageInput, setMessageInput] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [isSending, setIsSending] = useState(false);
-  const [showVideoCallModal, setShowVideoCallModal] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [activeCall, setActiveCall] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const audioRef = useRef(null);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-  // Initialize audio
   useEffect(() => {
     audioRef.current = new Audio(callSound);
     audioRef.current.loop = true;
-    
+
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -48,129 +44,48 @@ const ChatWindow = () => {
       }
     };
   }, []);
-
-  // Handle incoming calls
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleIncomingCall = (data) => {
-      try {
-        if (audioRef.current) {
-          audioRef.current.play().catch(e => console.error('Audio play failed:', e));
-        }
-        
-        setIncomingCall({
-          callerId: data.callerId,
-          callerName: data.callerName,
-          roomName: data.roomName,
-          timestamp: new Date()
-        });
-      } catch (error) {
-        console.error('Error handling incoming call:', error);
-      }
-    };
-
-    const handleCallAnswered = (data) => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-
-      if (data.answer) {
-        setActiveCall({
-          roomName: data.roomName,
-          participants: [data.callerId, user.id],
-          isInitiator: false
-        });
-        setShowVideoCallModal(true);
-      } else {
-        antdMessage.warning(`${data.callerName} declined the call`);
-      }
-      setIncomingCall(null);
-    };
-
-    const handleCallEnded = () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      setActiveCall(null);
-      setShowVideoCallModal(false);
-      setIncomingCall(null);
-      antdMessage.info('Call ended');
-    };
-
-    socket.on('incoming_video_call', handleIncomingCall);
-    socket.on('video_call_answer', handleCallAnswered);
-    socket.on('video_call_ended', handleCallEnded);
-
-    return () => {
-      socket.off('incoming_video_call', handleIncomingCall);
-      socket.off('video_call_answer', handleCallAnswered);
-      socket.off('video_call_ended', handleCallEnded);
-    };
-  }, [socket, user]);
-
-  const startVideoCall = async () => {
-    try {
-      if (!currentChat || !socket) return;
-
-      const roomName = `video_call_${user.id}_${currentChat.partner.id}_${Date.now()}`;
-      
-      socket.emit('initiate_video_call', {
-        receiverId: currentChat.partner.id,
-        callerId: user.id,
-        callerName: user.username,
-        roomName
-      });
-
-      setActiveCall({
-        roomName,
-        participants: [user.id],
-        isInitiator: true
-      });
-      setShowVideoCallModal(true);
-    } catch (error) {
-      console.error('Error starting video call:', error);
-      antdMessage.error('Failed to start video call');
-    }
-  };
-
-  const answerCall = (accept) => {
-    if (!incomingCall || !socket) return;
-
-    if (audioRef.current) {
-      audioRef.current.pause();
+const startVideoCall = async () => {
+  try {
+    if (!currentChat || !socket || !isConnected) {
+      notification.error({ message: 'Cannot start call: Missing data or socket not connected' });
+      return;
     }
 
-    socket.emit('answer_video_call', {
-      callerId: incomingCall.callerId,
-      answer: accept,
-      roomName: incomingCall.roomName,
-      respondentName: user.username
+    const roomName = `video_call_${user.id}_${currentChat.partner.id}_${Date.now()}`;
+    const callTimeout = 30000; // 30 seconds timeout
+
+    // Start the call
+    socket.emit('initiate_video_call', {
+      receiverId: currentChat.partner.id,
+      callerName: user.username,
+      callerPhoto: user.photo || null,
+      roomName,
     });
 
-    if (accept) {
-      setActiveCall({
-        roomName: incomingCall.roomName,
-        participants: [incomingCall.callerId, user.id],
-        isInitiator: false
-      });
-      setShowVideoCallModal(true);
-    }
+    // Set timeout for unanswered call
+    const timeoutId = setTimeout(() => {
+      if (!currentChat.activeCall?.roomName === roomName) {
+        notification.warning({ message: 'Call not answered' });
+        socket.emit('end_video_call', { roomName });
+      }
+    }, callTimeout);
 
-    setIncomingCall(null);
-  };
+    // Update chat with call info
+    setCurrentChat(prev => ({
+      ...prev,
+      activeCall: { 
+        roomName, 
+        isInitiator: true,
+        timeoutId 
+      },
+    }));
 
-  const endCall = () => {
-    if (!activeCall || !socket) return;
-
-    socket.emit('end_video_call', {
-      roomName: activeCall.roomName
-    });
-
-    setActiveCall(null);
-    setShowVideoCallModal(false);
-  };
-
+  } catch (error) {
+    console.error('Error starting video call:', error);
+    notification.error({ message: 'Failed to start video call' });
+  }
+};
+console.log('Current chat active call:', currentChat.activeCall);
   const handleSend = async () => {
     if (!messageInput.trim() && attachments.length === 0) return;
 
@@ -179,10 +94,10 @@ const ChatWindow = () => {
       await sendMessage(messageInput, currentChat.partner.id, attachments);
       setMessageInput('');
       setAttachments([]);
-      sendTypingStatus(false);
+      sendTypingStatus(false, currentChat.partner.id);
     } catch (error) {
       console.error('Failed to send message:', error);
-      antdMessage.error('Failed to send message');
+      notification.error({ message: 'Failed to send message' });
     } finally {
       setIsSending(false);
     }
@@ -193,7 +108,7 @@ const ChatWindow = () => {
       await deleteMessage(messageId);
     } catch (error) {
       if (!error.response || error.response.status !== 404) {
-        antdMessage.error('Delete failed');
+        notification.error({ message: 'Delete failed' });
       }
     }
   };
@@ -201,24 +116,24 @@ const ChatWindow = () => {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 5) {
-      antdMessage.error('You can only send up to 5 files');
+      notification.error({ message: 'You can only send up to 5 files' });
       return;
     }
-    
+
     const maxSize = 50 * 1024 * 1024;
-    const oversizedFiles = files.filter(file => file.size > maxSize);
-    
+    const oversizedFiles = files.filter((file) => file.size > maxSize);
+
     if (oversizedFiles.length > 0) {
-      antdMessage.error('Some files exceed the maximum size of 50MB');
+      notification.error({ message: 'Some files exceed the maximum size of 50MB' });
       return;
     }
-    
+
     setAttachments([...attachments, ...files]);
     e.target.value = null;
   };
 
   const removeAttachment = (index) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleKeyPress = (e) => {
@@ -230,16 +145,16 @@ const ChatWindow = () => {
 
   const handleInputChange = (e) => {
     setMessageInput(e.target.value);
-    
+
     if (socket && currentChat) {
-      sendTypingStatus(!!e.target.value);
-      
+      sendTypingStatus(!!e.target.value, currentChat.partner.id);
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
+
       typingTimeoutRef.current = setTimeout(() => {
-        sendTypingStatus(false);
+        sendTypingStatus(false, currentChat.partner.id);
       }, 3000);
     }
   };
@@ -250,16 +165,16 @@ const ChatWindow = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, typingStatus]);
+  }, [messages[currentChat?.partner.id], typingStatus[currentChat?.partner.id]]);
 
   useEffect(() => {
-    if (!socket || !currentChat || !messages.length) return;
+    if (!socket || !currentChat || !messages[currentChat?.partner.id]?.length) return;
 
-    const unreadMessages = messages.filter(
-      msg => msg.senderId === currentChat.partner.id && !msg.isRead
+    const unreadMessages = messages[currentChat.partner.id].filter(
+      (msg) => msg.senderId === currentChat.partner.id && !msg.isRead
     );
 
-    unreadMessages.forEach(msg => {
+    unreadMessages.forEach((msg) => {
       markAsRead(msg.id);
     });
   }, [messages, currentChat, socket, markAsRead]);
@@ -270,7 +185,7 @@ const ChatWindow = () => {
         clearTimeout(typingTimeoutRef.current);
       }
       if (socket && currentChat) {
-        sendTypingStatus(false);
+        sendTypingStatus(false, currentChat.partner.id);
       }
     };
   }, [socket, currentChat]);
@@ -284,41 +199,32 @@ const ChatWindow = () => {
   }
 
   return (
-    <div className="chat-window-container">
+    <div className="chat-window-container" style={embedded ? { height: '100%', border: 'none', borderRadius: 0 } : {}}>
       <div className="chat-header">
-        <Badge 
-          dot 
-          color={onlineUsers.includes(currentChat.partner.id) ? '#52c41a' : '#f5222d'} 
-          offset={[-5, 30]}
-        >
-          <Avatar
-  size="large"
-  src={
-    currentChat?.partner?.photo 
-      ? `${axios.defaults.baseURL}/uploads/${currentChat.partner.photo}`
-      : '/assets/img/user.png'
-  }
-  icon={<UserOutlined />}
-/>
-        </Badge>
+        <Badge dot color={onlineUsers.includes(currentChat.partner.id) ? '#52c41a' : '#f5222d'} offset={[-5, 20]}>
+  <Avatar
+    size="default" // Changé de "large" à "default"
+    src={currentChat.partner.photo ? `${API_URL}/Uploads/${currentChat.partner.photo}` : '/assets/img/user.png'}
+    icon={<UserOutlined />}
+    style={{ width: 32, height: 32 }} // Réduction de la taille
+    className="avatar-img"
+  />
+</Badge>
         <div className="chat-header-info">
-         <Text  strong style={{ paddingLeft: 24, paddingRight: 24 }}>
-  {currentChat.partner.username.toUpperCase()}
-</Text>
-          <Text type="secondary">
-            
-            {onlineUsers.includes(currentChat.partner.id) ? ' Online' : ' Offline'}
+          <Text strong style={{ paddingLeft: 24, paddingRight: 24 }}>
+            {currentChat.partner.username.toUpperCase()}
           </Text>
-          {typingStatus && (
+          <Text type="secondary">{onlineUsers.includes(currentChat.partner.id) ? ' Online' : ' Offline'}</Text>
+          {typingStatus[currentChat.partner.id] && (
             <Text type="secondary" style={{ fontStyle: 'italic', marginLeft: 8 }}>
-              {typingStatus}
+              {typingStatus[currentChat.partner.id]}
             </Text>
           )}
         </div>
         {onlineUsers.includes(currentChat.partner.id) && (
-          <Button 
-            type="primary" 
-            icon={<VideoCameraOutlined />} 
+          <Button
+            type="primary"
+            icon={<VideoCameraOutlined />}
             onClick={startVideoCall}
             style={{ marginLeft: 'auto', backgroundColor: '#a8b845', borderColor: '#a8b845' }}
           >
@@ -327,95 +233,89 @@ const ChatWindow = () => {
         )}
       </div>
 
-      <Modal
-        title="Incoming Video Call"
-        visible={!!incomingCall}
-        onCancel={() => answerCall(false)}
-        footer={[
-          <Button key="decline" danger onClick={() => answerCall(false)}>
-            Decline
-          </Button>,
-          <Button key="accept" type="primary" onClick={() => answerCall(true)} style={{ backgroundColor: '#a8b845', borderColor: '#a8b845' }}>
-            Accept
-          </Button>,
-        ]}
-      >
-        {incomingCall && (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-           <Avatar
-  size="large"
-  src={
-    currentChat?.partner?.photo 
-      ? `${axios.defaults.baseURL}/uploads/${currentChat.partner.photo}`
-      : '/assets/img/user.png'
-  }
-  icon={<UserOutlined />}
-/>
-            <Text style={{ display: 'block', marginTop: 16, fontSize: 18 }}>
-              {incomingCall.callerName} is calling
-            </Text>
-          </div>
-        )}
-      </Modal>
-
-      {showVideoCallModal && activeCall && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1000,
-          backgroundColor: 'white'
-        }}>
-          <Button 
-            danger 
-            onClick={endCall}
+      {currentChat.activeCall && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 1000,
+            backgroundColor: 'white',
+          }}
+        >
+          <Button
+            danger
+            onClick={() => {
+              socket.emit('end_video_call', { roomName: currentChat.activeCall.roomName });
+            }}
             style={{
               position: 'absolute',
               top: 20,
               right: 20,
-              zIndex: 1001
+              zIndex: 1001,
             }}
             icon={<CloseOutlined />}
           >
             End Call
           </Button>
-          
           <JitsiMeeting
-            roomName={activeCall.roomName}
-            domain="jitsi.riot.im"
-            configOverwrite={{
-              startWithAudioMuted: false,
-              startWithVideoMuted: false,
-              disableSimulcast: false,
-              enableNoisyMicDetection: false,
-              enableClosePage: false,
-              prejoinPageEnabled: false,
-              disableSelfViewSettings: false,
-              defaultLanguage: 'en'
-            }}
+            roomName={currentChat.activeCall.roomName}
+         domain="jitsi.riot.im"
+configOverwrite={{
+  startWithAudioMuted: false,
+  startWithVideoMuted: false,
+  disableSimulcast: false,
+  enableNoisyMicDetection: false,
+  enableClosePage: false,
+  prejoinPageEnabled: false,
+  disableSelfViewSettings: false,
+  defaultLanguage: 'en',
+}}
             interfaceConfigOverwrite={{
               DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
               SHOW_CHROME_EXTENSION_BANNER: false,
               MOBILE_APP_PROMO: false,
               HIDE_INVITE_MORE_HEADER: true,
               TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'profile', 'info', 'chat', 'recording',
-                'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-                'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-                'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+                'microphone',
+                'camera',
+                'closedcaptions',
+                'desktop',
+                'fullscreen',
+                'fodeviceselection',
+                'hangup',
+                'profile',
+                'info',
+                'chat',
+                'recording',
+                'livestreaming',
+                'etherpad',
+                'sharedvideo',
+                'settings',
+                'raisehand',
+                'videoquality',
+                'filmstrip',
+                'invite',
+                'feedback',
+                'stats',
+                'shortcuts',
+                'tileview',
+                'videobackgroundblur',
+                'download',
+                'help',
+                'mute-everyone',
               ],
               SHOW_JITSI_WATERMARK: false,
               SHOW_WATERMARK_FOR_GUESTS: false,
               DEFAULT_BACKGROUND: '#f0f2f5',
               DEFAULT_REMOTE_DISPLAY_NAME: 'Participant',
-              DEFAULT_LOCAL_DISPLAY_NAME: user.username
+              DEFAULT_LOCAL_DISPLAY_NAME: user.username,
             }}
             userInfo={{
               displayName: user.username,
-              email: user.email || ''
+              email: user.email || '',
             }}
             onApiReady={(externalApi) => {
               console.log('Jitsi API ready', externalApi);
@@ -435,12 +335,12 @@ const ChatWindow = () => {
       ) : (
         <>
           <div className="messages-container">
-            {messages.length === 0 ? (
+            {messages[currentChat.partner.id]?.length === 0 ? (
               <Empty description="No messages in this conversation" />
             ) : (
               <List
-                dataSource={messages}
-                renderItem={msg => (
+                dataSource={messages[currentChat.partner.id] || []}
+                renderItem={(msg) => (
                   <div className={`message ${msg.senderId === currentChat.partner.id ? 'received' : 'sent'}`}>
                     <div className="message-content">
                       <Text>{msg.content}</Text>
@@ -449,11 +349,7 @@ const ChatWindow = () => {
                           {msg.attachments.map((file, index) => (
                             <div key={index} className="attachment-item">
                               <PaperClipOutlined />
-                              <a 
-                                href={`${axios.defaults.baseURL}${file.path}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                              >
+                              <a href={`${API_URL}${file.path}`} target="_blank" rel="noopener noreferrer">
                                 {file.filename}
                               </a>
                             </div>
@@ -461,17 +357,15 @@ const ChatWindow = () => {
                         </div>
                       )}
                       <div className="message-meta">
-                        <Text type="secondary">
-                          {moment(msg.createdAt).format('HH:mm')}
-                        </Text>
+                        <Text type="secondary">{moment(msg.createdAt).format('HH:mm')}</Text>
                         {msg.senderId !== currentChat.partner.id && msg.isRead && (
                           <CheckOutlined style={{ color: '#333333', marginLeft: 4 }} />
                         )}
                         {msg.senderId === user?.id && (
-                          <Button 
-                            type="text" 
-                            size="small" 
-                            icon={<DeleteOutlined />} 
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<DeleteOutlined />}
                             onClick={() => handleDelete(msg.id)}
                             style={{ marginLeft: 8 }}
                           />
@@ -492,17 +386,17 @@ const ChatWindow = () => {
               onKeyPress={handleKeyPress}
               placeholder="Type a message..."
               autoSize={{ minRows: 1, maxRows: 4 }}
-            />          
+            />
             <div className="input-actions">
-              <input 
-                type="file" 
-                id="file-upload" 
-                multiple 
+              <input
+                type="file"
+                id={`file-upload-${currentChat.partner.id}`}
+                multiple
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
                 accept="*"
               />
-              <label htmlFor="file-upload" className="attachment-button">
+              <label htmlFor={`file-upload-${currentChat.partner.id}`} className="attachment-button">
                 <PaperClipOutlined />
               </label>
               <Button
@@ -522,12 +416,10 @@ const ChatWindow = () => {
                   <div key={index} className="attachment-item">
                     <PaperClipOutlined className="attachment-icon" />
                     <span className="attachment-name">{file.name}</span>
-                    <span className="attachment-size">
-                      {(file.size / 1024 / 1024).toFixed(2)}MB
-                    </span>
-                    <Button 
-                      type="text" 
-                      icon={<CloseOutlined />} 
+                    <span className="attachment-size">{(file.size / 1024 / 1024).toFixed(2)}MB</span>
+                    <Button
+                      type="text"
+                      icon={<CloseOutlined />}
                       onClick={() => removeAttachment(index)}
                       className="attachment-remove"
                     />
