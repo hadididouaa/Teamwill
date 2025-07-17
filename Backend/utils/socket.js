@@ -31,10 +31,11 @@ const initializeSocket = (server) => {
         return next(new Error('User not found'));
       }
 
-      socket.user = {
+       socket.user = {
         id: user.id,
         username: user.username,
-        role: user.roleUtilisateur
+        role: user.roleUtilisateur,
+        photo: user.photo
       };
 
       next();
@@ -50,8 +51,7 @@ const initializeSocket = (server) => {
     onlineUsers.set(socket.user.id, socket.user);
     io.emit('online_users', Array.from(onlineUsers.values()));
 
-    // Ajoutez en haut du fichier
-const activeCalls = new Map();
+ 
 
 // Dans la partie connection, ajoutez/modifiez ces handlers :
 socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomName }) => {
@@ -62,6 +62,12 @@ socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomNam
     console.error('Invalid caller or receiver ID');
     return;
   }
+  for (const [_, call] of activeCalls) {
+        if (call.callerId === callerId || call.receiverId === callerId) {
+          socket.emit('call_error', { message: 'You are already in a call' });
+          return;
+        }
+      }
 
   activeCalls.set(roomName, {
     callerId,
@@ -69,27 +75,28 @@ socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomNam
     roomName,
     timestamp: new Date(),
   });
-  console.log('Active calls updated:', Array.from(activeCalls.entries()));
+
 
   io.to(`user_${receiverId}`).emit('incoming_video_call', {
-    callerId,
-    callerName,
-    callerPhoto,
-    roomName,
-    respondentId: receiverId,
+     callerId,
+        callerName: callerName || socket.user.username,
+        callerPhoto: callerPhoto || socket.user.photo,
+        roomName,
+        respondentId: receiverId,
   });
-  console.log('Emitted incoming_video_call to:', `user_${receiverId}`);
+
 });
 
+// Modifiez le handler 'answer_video_call' comme ceci :
 socket.on('answer_video_call', ({ roomName, answer }) => {
   const call = activeCalls.get(roomName);
   if (!call) return;
 
-  // Vérifier que l'utilisateur est le destinataire
+  // Vérifier que l'utilisateur est bien le destinataire
   if (socket.user.id !== call.receiverId) return;
 
   // Informer l'appelant de la réponse
-  io.to(`user_${call.callerId}`).emit('video_call_answer', {
+  io.to(`user_${call.callerId}`).emit('video_call_answered', {
     answer,
     roomName,
     respondentId: socket.user.id,
@@ -101,8 +108,9 @@ socket.on('answer_video_call', ({ roomName, answer }) => {
     io.to(`user_${call.callerId}`).emit('join_video_call', { roomName });
     io.to(`user_${call.receiverId}`).emit('join_video_call', { roomName });
   } else {
-    // Appel refusé, nettoyer
+    // Appel refusé, nettoyage
     activeCalls.delete(roomName);
+    io.to(`user_${call.callerId}`).emit('call_declined', { roomName });
   }
 });
 
@@ -118,25 +126,10 @@ socket.on('end_video_call', ({ roomName }) => {
   activeCalls.delete(roomName);
 });
 
-    // Gestion de la déconnexion
-    socket.on('disconnect', () => {
-      console.log(`User disconnected: ${socket.user.id}`);
-      onlineUsers.delete(socket.user.id);
-      io.emit('online_users', Array.from(onlineUsers.values()));
 
-      // Nettoyer les appels en cours
-      for (const [roomName, call] of activeCalls) {
-        if (call.callerId === socket.user.id || call.receiverId === socket.user.id) {
-          const otherUserId = call.callerId === socket.user.id ? call.receiverId : call.callerId;
-          io.to(`user_${otherUserId}`).emit('video_call_ended', { roomName });
-          activeCalls.delete(roomName);
-        }
-      }
-    });
   
     
-    // Rejoindre la room de l'utilisateur
-    socket.join(`user_${socket.user.id}`);
+
     onlineUsers.set(socket.user.id, socket.user);
     io.emit('online_users', Array.from(onlineUsers.values()));
 
@@ -170,7 +163,21 @@ socket.on('end_video_call', ({ roomName }) => {
         console.error('Error sending message:', error);
       }
     });
+    // Gestion de la déconnexion
+    socket.on('disconnect', () => {
+      console.log(`User disconnected: ${socket.user.id}`);
+      onlineUsers.delete(socket.user.id);
+      io.emit('online_users', Array.from(onlineUsers.values()));
 
+      // Nettoyer les appels en cours
+      for (const [roomName, call] of activeCalls) {
+        if (call.callerId === socket.user.id || call.receiverId === socket.user.id) {
+          const otherUserId = call.callerId === socket.user.id ? call.receiverId : call.callerId;
+          io.to(`user_${otherUserId}`).emit('video_call_ended', { roomName });
+          activeCalls.delete(roomName);
+        }
+      }
+    });
     socket.on('delete_message', async ({ messageId }) => {
       try {
         const message = await Message.findByPk(messageId);

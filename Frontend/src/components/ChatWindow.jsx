@@ -1,11 +1,9 @@
-// frontend/src/components/ChatWindow.jsx
 import React, { useContext, useRef, useState, useEffect } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
 import { Avatar, Input, Button, List, Typography, Spin, notification, Badge, Empty } from 'antd';
 import { SendOutlined, UserOutlined, CheckOutlined, PaperClipOutlined, DeleteOutlined, CloseOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import { JitsiMeeting } from '@jitsi/react-sdk';
-import callSound from '../assets/sounds/microsoft_teams_call.mp3';
 
 const { Text } = Typography;
 
@@ -22,7 +20,9 @@ const ChatWindow = ({ currentChat, embedded = false }) => {
     deleteMessage,
     markAsRead,
     sendTypingStatus,
-    setMessages,
+    setCurrentChat,
+    startVideoCall,
+    endVideoCall
   } = useContext(ChatContext);
 
   const [messageInput, setMessageInput] = useState('');
@@ -30,62 +30,9 @@ const ChatWindow = ({ currentChat, embedded = false }) => {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const audioRef = useRef(null);
+
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-  useEffect(() => {
-    audioRef.current = new Audio(callSound);
-    audioRef.current.loop = true;
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
-const startVideoCall = async () => {
-  try {
-    if (!currentChat || !socket || !isConnected) {
-      notification.error({ message: 'Cannot start call: Missing data or socket not connected' });
-      return;
-    }
-
-    const roomName = `video_call_${user.id}_${currentChat.partner.id}_${Date.now()}`;
-    const callTimeout = 30000; // 30 seconds timeout
-
-    // Start the call
-    socket.emit('initiate_video_call', {
-      receiverId: currentChat.partner.id,
-      callerName: user.username,
-      callerPhoto: user.photo || null,
-      roomName,
-    });
-
-    // Set timeout for unanswered call
-    const timeoutId = setTimeout(() => {
-      if (!currentChat.activeCall?.roomName === roomName) {
-        notification.warning({ message: 'Call not answered' });
-        socket.emit('end_video_call', { roomName });
-      }
-    }, callTimeout);
-
-    // Update chat with call info
-    setCurrentChat(prev => ({
-      ...prev,
-      activeCall: { 
-        roomName, 
-        isInitiator: true,
-        timeoutId 
-      },
-    }));
-
-  } catch (error) {
-    console.error('Error starting video call:', error);
-    notification.error({ message: 'Failed to start video call' });
-  }
-};
-console.log('Current chat active call:', currentChat.activeCall);
   const handleSend = async () => {
     if (!messageInput.trim() && attachments.length === 0) return;
 
@@ -200,16 +147,97 @@ console.log('Current chat active call:', currentChat.activeCall);
 
   return (
     <div className="chat-window-container" style={embedded ? { height: '100%', border: 'none', borderRadius: 0 } : {}}>
+     
+{currentChat?.activeCall?.status === 'active' && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: 'rgba(0,0,0,0.9)'
+  }}>
+    <Button
+      danger
+      onClick={() => endVideoCall(currentChat.activeCall.roomName)}
+      style={{
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        zIndex: 1001
+      }}
+      icon={<CloseOutlined />}
+    >
+      End Call
+    </Button>
+    
+    <div style={{
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <JitsiMeeting
+        roomName={currentChat.activeCall.roomName}
+        domain="meet.jit.si"
+        configOverwrite={{
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false,
+          disableSimulcast: false,
+          enableNoisyMicDetection: false,
+          enableClosePage: false,
+          disableSelfViewSettings: false,
+          toolbarButtons: [
+            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+            'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+            'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+            'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+            'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+          ]
+        }}
+        interfaceConfigOverwrite={{
+          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+          SHOW_CHROME_EXTENSION_BANNER: false,
+          MOBILE_APP_PROMO: false,
+          HIDE_INVITE_MORE_HEADER: true,
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DEFAULT_BACKGROUND: '#f0f2f5',
+          DEFAULT_REMOTE_DISPLAY_NAME: currentChat.partner.username,
+          DEFAULT_LOCAL_DISPLAY_NAME: user.username,
+        }}
+        userInfo={{
+          displayName: user.username,
+          email: user.email || '',
+        }}
+        onApiReady={(externalApi) => {
+          console.log('Jitsi API ready');
+          externalApi.on('readyToClose', () => {
+            endVideoCall(currentChat.activeCall.roomName);
+          });
+        }}
+        getIFrameRef={(iframeRef) => {
+          iframeRef.style.height = '90%';
+          iframeRef.style.width = '90%';
+          iframeRef.style.borderRadius = '8px';
+        }}
+      />
+    </div>
+  </div>
+)}
       <div className="chat-header">
         <Badge dot color={onlineUsers.includes(currentChat.partner.id) ? '#52c41a' : '#f5222d'} offset={[-5, 20]}>
-  <Avatar
-    size="default" // Changé de "large" à "default"
-    src={currentChat.partner.photo ? `${API_URL}/Uploads/${currentChat.partner.photo}` : '/assets/img/user.png'}
-    icon={<UserOutlined />}
-    style={{ width: 32, height: 32 }} // Réduction de la taille
-    className="avatar-img"
-  />
-</Badge>
+          <Avatar
+            size="default"
+            src={currentChat.partner.photo ? `${API_URL}/Uploads/${currentChat.partner.photo}` : '/assets/img/user.png'}
+            icon={<UserOutlined />}
+            style={{ width: 32, height: 32 }}
+            className="avatar-img"
+          />
+        </Badge>
         <div className="chat-header-info">
           <Text strong style={{ paddingLeft: 24, paddingRight: 24 }}>
             {currentChat.partner.username.toUpperCase()}
@@ -221,112 +249,18 @@ console.log('Current chat active call:', currentChat.activeCall);
             </Text>
           )}
         </div>
-        {onlineUsers.includes(currentChat.partner.id) && (
+        {onlineUsers.includes(currentChat.partner.id) && !currentChat?.activeCall && (
           <Button
             type="primary"
             icon={<VideoCameraOutlined />}
-            onClick={startVideoCall}
+            onClick={() => startVideoCall(currentChat.partner.id)}
             style={{ marginLeft: 'auto', backgroundColor: '#a8b845', borderColor: '#a8b845' }}
+            disabled={!isConnected}
           >
             Video Call
           </Button>
         )}
       </div>
-
-      {currentChat.activeCall && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1000,
-            backgroundColor: 'white',
-          }}
-        >
-          <Button
-            danger
-            onClick={() => {
-              socket.emit('end_video_call', { roomName: currentChat.activeCall.roomName });
-            }}
-            style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              zIndex: 1001,
-            }}
-            icon={<CloseOutlined />}
-          >
-            End Call
-          </Button>
-          <JitsiMeeting
-            roomName={currentChat.activeCall.roomName}
-         domain="jitsi.riot.im"
-configOverwrite={{
-  startWithAudioMuted: false,
-  startWithVideoMuted: false,
-  disableSimulcast: false,
-  enableNoisyMicDetection: false,
-  enableClosePage: false,
-  prejoinPageEnabled: false,
-  disableSelfViewSettings: false,
-  defaultLanguage: 'en',
-}}
-            interfaceConfigOverwrite={{
-              DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-              SHOW_CHROME_EXTENSION_BANNER: false,
-              MOBILE_APP_PROMO: false,
-              HIDE_INVITE_MORE_HEADER: true,
-              TOOLBAR_BUTTONS: [
-                'microphone',
-                'camera',
-                'closedcaptions',
-                'desktop',
-                'fullscreen',
-                'fodeviceselection',
-                'hangup',
-                'profile',
-                'info',
-                'chat',
-                'recording',
-                'livestreaming',
-                'etherpad',
-                'sharedvideo',
-                'settings',
-                'raisehand',
-                'videoquality',
-                'filmstrip',
-                'invite',
-                'feedback',
-                'stats',
-                'shortcuts',
-                'tileview',
-                'videobackgroundblur',
-                'download',
-                'help',
-                'mute-everyone',
-              ],
-              SHOW_JITSI_WATERMARK: false,
-              SHOW_WATERMARK_FOR_GUESTS: false,
-              DEFAULT_BACKGROUND: '#f0f2f5',
-              DEFAULT_REMOTE_DISPLAY_NAME: 'Participant',
-              DEFAULT_LOCAL_DISPLAY_NAME: user.username,
-            }}
-            userInfo={{
-              displayName: user.username,
-              email: user.email || '',
-            }}
-            onApiReady={(externalApi) => {
-              console.log('Jitsi API ready', externalApi);
-            }}
-            getIFrameRef={(iframeRef) => {
-              iframeRef.style.height = '100vh';
-              iframeRef.style.width = '100%';
-            }}
-          />
-        </div>
-      )}
 
       {loading ? (
         <div className="loading-container">
