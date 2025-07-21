@@ -36,133 +36,169 @@ const ProfileContent = ({ style }) => {
     setSelectedImage(e.target.files[0]);
   };
 
-  const handleSave = async () => {
-    setPhoneError("");
-    setErrorMsg("");
+const handleSave = async () => {
+  setPhoneError("");
+  setErrorMsg("");
 
-    if (editableUser.tel && !/^[2459]\d{7}$/.test(editableUser.tel)) {
-      setPhoneError("Phone number must start with 2, 4, 5, or 9 and contain 8 digits.");
-      return;
+  // Validation
+  if (editableUser.tel && !/^\d{8,15}$/.test(editableUser.tel)) {
+    setPhoneError("Le numéro doit contenir entre 8 et 15 chiffres");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("username", editableUser.username || "");
+    formData.append("email", editableUser.email || "");
+    formData.append("tel", editableUser.tel || ""); // Important
+    
+    if (selectedImage) {
+      formData.append("photo", selectedImage);
     }
 
-    try {
-      const formData = new FormData();
-      formData.append("username", editableUser.username || "");
-      formData.append("email", editableUser.email || "");
-      formData.append("tel", editableUser.tel || "");
-      if (selectedImage) {
-        formData.append("photo", selectedImage);
+    console.log("Données envoyées:", {
+      tel: editableUser.tel,
+      username: editableUser.username,
+      email: editableUser.email
+    });
+
+    const res = await axios.put(
+      `${import.meta.env.VITE_API_URL}/users/UpdateUser/${user.id}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
       }
+    );
 
-      const res = await axios.put(
-        `${import.meta.env.VITE_API_URL}/users/UpdateUser/${user.id}`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
-        }
-      );
+    console.log("Réponse du serveur:", res.data);
 
-      setUser(res.data.user);
-      setEditableUser(res.data.user);
-      setIsEditing(false);
-      setSelectedImage(null);
-      window.location.reload();
-    } catch (err) {
-      console.error("Error updating user:", err);
-      const msg =
-        err.response?.data?.message || "Failed to update profile.";
-      setErrorMsg(msg);
-    }
-  };
+    // Mise à jour optimisée de l'état
+    setUser(prev => ({
+      ...prev,
+      username: editableUser.username,
+      email: editableUser.email,
+      tel: editableUser.tel, // Utilise la valeur locale plutôt que la réponse
+      photo: res.data.user?.photo || prev.photo
+    }));
+
+    setIsEditing(false);
+    setSelectedImage(null);
+    
+  } catch (err) {
+    console.error("Erreur:", err.response?.data || err);
+    setErrorMsg(err.response?.data?.message || "Erreur lors de la mise à jour");
+  }
+};
 
   return (
     <div className="dashboard__content-wrap" style={{ maxWidth: "900px", ...style }}>
-      <div className="dashboard__content-title">
-        <h4 className="title">My Profile</h4>
-        <button className="pill-button" onClick={() => setIsEditing(!isEditing)}>
-          {isEditing ? "Cancel" : "Edit"}
-        </button>
+      <div className="profile-header">
+        <div className="profile-title-container">
+          <h2 className="profile-title">My Profile</h2>
+          <button 
+            className={`profile-edit-btn ${isEditing ? 'cancel' : 'edit'}`}
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? (
+              <>
+                <i className="fas fa-times"></i> Cancel
+              </>
+            ) : (
+              <>
+                <i className="fas fa-edit"></i> Edit Profile
+              </>
+            )}
+          </button>
+        </div>
+        {errorMsg && <div className="error-message">{errorMsg}</div>}
       </div>
-      <br />
-      {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
-      <div className="row">
-        <div className="col-lg-12">
-          <div className="profile__content-wrap">
-            <ul className="list-wrap">
-              <li>
-                <span>Username</span>{" "}
-                {isEditing ? (
-                  <input
-                    name="username"
-                    value={editableUser.username || ""}
-                    onChange={handleChange}
-                  />
-                ) : (
-                  user?.username || "N/A"
-                )}
-              </li>
-              <li>
-                <span>Email</span>{" "}
-                {isEditing ? (
-                  <input
-                    name="email"
-                    value={editableUser.email || ""}
-                    onChange={handleChange}
-                  />
-                ) : (
-                  user?.email || "example@gmail.com"
-                )}
-              </li>
-              <li>
-                <span>Phone</span>
-                {isEditing ? (
-                  <div>
-                    <input
-                      name="tel"
-                      value={editableUser.tel || ""}
-                      onChange={handleChange}
-                      placeholder="Ex: 24567890"
-                    />
-                    {phoneError && (
-                      <p style={{ color: "red", margin: 0 }}>{phoneError}</p>
-                    )}
-                  </div>
-                ) : (
-                  user?.tel || "N/A"
-                )}
-              </li>
-              <li>
-                <span>Profile Picture</span>
-                {isEditing ? (
-                  <>
-                    <input
-                      type="file"
-                      onChange={handleFileChange}
-                      accept="image/*"
-                    />
-                    {selectedImage && <p>{selectedImage.name}</p>}
-                  </>
-                ) : (
-                  <img
-                    src={
-                      user?.photo
-                        ? user.photo  // ✅ already a full URL from backend
-                        : "http://localhost:3000/assets/uploads/1746128922729-855346037.png"
-                    }
-                    alt="profile"
-                    width="100"
-                    style={{ borderRadius: "50px", objectFit: "cover" }}
-                  />
-                )}
-              </li>
-            </ul>
+
+      <div className="profile-content">
+        <div className="profile-picture-section">
+          <div className="profile-avatar-container">
+            <img
+              src={
+                user?.photo
+                  ? user.photo
+                  : "http://localhost:3000/assets/uploads/1746128922729-855346037.png"
+              }
+              alt="profile"
+              className="profile-avatar"
+            />
             {isEditing && (
-              <button className="pill-button" onClick={handleSave}>
-                Save
-              </button>
+              <div className="avatar-upload">
+                <label htmlFor="file-upload" className="upload-btn">
+                  <i className="fas fa-camera"></i> Change Photo
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                />
+                {selectedImage && (
+                  <div className="file-name">{selectedImage.name}</div>
+                )}
+              </div>
             )}
           </div>
+        </div>
+
+        <div className="profile-details">
+          <div className="profile-detail-item">
+            <label>Username</label>
+            {isEditing ? (
+              <input
+                className="profile-input"
+                name="username"
+                value={editableUser.username || ""}
+                onChange={handleChange}
+              />
+            ) : (
+              <div className="profile-value">{user?.username || "N/A"}</div>
+            )}
+          </div>
+
+          <div className="profile-detail-item">
+            <label>Email</label>
+            {isEditing ? (
+              <input
+                className="profile-input"
+                name="email"
+                value={editableUser.email || ""}
+                onChange={handleChange}
+              />
+            ) : (
+              <div className="profile-value">{user?.email || "example@gmail.com"}</div>
+            )}
+          </div>
+
+          <div className="profile-detail-item">
+            <label>Phone</label>
+            {isEditing ? (
+              <div className="phone-input-container">
+                <input
+                  className="profile-input"
+                  name="tel"
+                  value={editableUser.tel || ""}
+                  onChange={handleChange}
+                  placeholder="Ex: 24567890"
+                />
+                {phoneError && <div className="error-message">{phoneError}</div>}
+              </div>
+            ) : (
+              <div className="profile-value">{user?.tel || "N/A"}</div>
+            )}
+          </div>
+
+          {isEditing && (
+            <div className="profile-actions">
+              <button className="save-btn" onClick={handleSave}>
+                <i className="fas fa-save"></i> Save Changes
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

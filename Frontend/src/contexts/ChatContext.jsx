@@ -1,16 +1,10 @@
-import React, { 
-  createContext, 
-  useState, 
-  useEffect, 
-  useCallback, 
-  useContext, 
-  useRef
-} from 'react';
+import React, { createContext, useState, useEffect, useCallback, useContext, useRef } from 'react';
 import axios from 'axios';
 import { initSocket, disconnectSocket } from '../utils/socket';
 import { message as antdMessage, notification, Avatar, Button } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import callSound from '../assets/sounds/microsoft_teams_call.mp3';
+import VideoCallOverlay from '../components/VideoCallOverlay';
 
 export const ChatContext = createContext();
 
@@ -36,22 +30,48 @@ export const ChatProvider = ({ children }) => {
   const [psychologists, setPsychologists] = useState([]);
   const [collaborators, setCollaborators] = useState([]);
   const [incomingCalls, setIncomingCalls] = useState([]);
+  const [activeVideoCall, setActiveVideoCall] = useState(null);
+  
 
-  const audioRef = useRef(new Audio(callSound));
+  const audioRef = useRef(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
   axios.defaults.withCredentials = true;
   axios.defaults.baseURL = API_URL;
-  const handleJoinVideoCall = useCallback((roomName) => {
-  setCurrentChat(prev => ({
-    ...prev,
-    activeCall: {
-      roomName,
-      isInitiator: false,
-      status: 'active'
+
+  useEffect(() => {
+    audioRef.current = new Audio(callSound);
+    audioRef.current.loop = true;
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+  // Dans ChatContext.jsx
+useEffect(() => {
+  if (!socket) return;
+
+  const handleJoinCall = ({ roomName }) => {
+    console.log('Joining video call room:', roomName);
+    setActiveVideoCall(roomName);
+  };
+
+  socket.on('join_video_call', handleJoinCall);
+
+  return () => {
+    socket.off('join_video_call', handleJoinCall);
+  };
+}, [socket]);
+
+  const stopRingtone = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      console.log('Ringtone stopped');
     }
-  }));
-}, []);
+  }, []);
 
   const initializeSocket = useCallback(
     (userId) => {
@@ -59,22 +79,73 @@ export const ChatProvider = ({ children }) => {
 
       const newSocket = initSocket(userId);
 
-      newSocket.on('connect', () => {
-        console.log('Socket connected');
-        setIsConnected(true);
-      });
+  newSocket.on('connect', () => {
+  console.log('Socket connected for user:', userId);
+  setIsConnected(true);
+  newSocket.emit('join_user_room', `user_${userId}`);
+});
+
+// Handle reconnection
+newSocket.on('reconnect', () => {
+  console.log('Socket reconnected for user:', userId);
+  newSocket.emit('join_user_room', `user_${userId}`);
+});
 
       newSocket.on('disconnect', () => {
         console.log('Socket disconnected');
         setIsConnected(false);
       });
-       newSocket.on('join_video_call', ({ roomName }) => {
-      handleJoinVideoCall(roomName);
-    });
 
       newSocket.on('online_users', (users) => {
         setOnlineUsers(users.map((u) => u.id));
         updateConversationsOnlineStatus(users.map((u) => u.id));
+      });
+
+// Replace the standalone line with:
+newSocket.on('incoming_video_call', ({ roomName, callerId, callerName, callerPhoto }) => {
+  console.log('Received incoming_video_call:', { roomName, callerId, callerName, callerPhoto });
+  setIncomingCalls(prev => [...prev, { roomName, callerId, callerName, callerPhoto }]);
+  if (audioRef.current) {
+    audioRef.current.play().catch(e => console.error('Audio play failed:', e));
+  }
+});
+
+      newSocket.on('call_initiated', ({ roomName }) => {
+        console.log('Call initiated:', roomName);
+        setActiveVideoCall(roomName);
+      });
+
+      newSocket.on('video_call_accepted', ({ roomName, isInitiator, participantName }) => {
+        console.log('Video call accepted:', { roomName, isInitiator, participantName });
+        stopRingtone();
+        setActiveVideoCall(roomName); // Ensure both users join the call
+      });
+
+      newSocket.on('join_video_call', ({ roomName }) => {
+        console.log('Received join_video_call:', roomName);
+        setActiveVideoCall(roomName); // Ensure the receiver joins the Jitsi room
+      });
+
+      newSocket.on('stop_call_sound', () => {
+        console.log('Received stop_call_sound');
+        stopRingtone();
+      });
+
+      newSocket.on('video_call_ended', ({ roomName }) => {
+        console.log('Video call ended for room:', roomName);
+        stopRingtone();
+        notification.destroy(`call_${roomName}`);
+        setIncomingCalls((prev) => prev.filter((call) => call.roomName !== roomName));
+        setActiveVideoCall(null);
+      });
+
+      newSocket.on('call_terminated', ({ roomName, reason }) => {
+        console.log('Call terminated:', { roomName, reason });
+        stopRingtone();
+        notification.destroy(`call_${roomName}`);
+        setIncomingCalls((prev) => prev.filter((call) => call.roomName !== roomName));
+        setActiveVideoCall(null);
+        notification.warning({ message: 'Call ended', description: reason });
       });
 
       newSocket.on('new_message', (message) => {
@@ -117,107 +188,6 @@ export const ChatProvider = ({ children }) => {
         }));
       });
 
-   newSocket.on('incoming_video_call', (data) => {
-  console.log('Received incoming_video_call:', data);
-  
-  try {
-    audioRef.current.currentTime = 0; // Reset audio
-    audioRef.current.loop = true;
-    audioRef.current.play().catch(e => console.error('Audio play failed:', e));
-  } catch (e) {
-    console.error('Audio error:', e);
-  }
-        
-
-        const key = `call_${data.roomName}`;
-        notification.destroy(key);
-        
-        const btn = (
-          <div className="call-notification-buttons">
-            <Button 
-              danger 
-              onClick={() => {
-                notification.destroy(key);
-                answerCall(data.roomName, false);
-              }}
-            >
-              Decline
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => {
-                notification.destroy(key);
-                answerCall(data.roomName, true);
-              }}
-              style={{ backgroundColor: '#a8b845', borderColor: '#a8b845' }}
-            >
-              Accept
-            </Button>
-          </div>
-        );
-
-        notification.open({
-          key,
-          message: 'Incoming Video Call',
-          description: (
-            <div className="call-notification">
-              <Avatar
-                src={data.callerPhoto ? `${API_URL}/Uploads/${data.callerPhoto}` : '/assets/img/user.png'}
-                icon={<UserOutlined />}
-                size="large"
-                style={{ marginBottom: 10 }}
-              />
-              <div>{data.callerName} is calling...</div>
-              {btn}
-            </div>
-          ),
-          duration: 0,
-          placement: 'topRight',
-          onClose: () => {
-            if (audioRef.current) audioRef.current.pause();
-          }
-        });
-
-        setIncomingCalls(prev => [...prev, data]);
-      });
-
-      newSocket.on('video_call_answered', (data) => {
-        console.log('Video call answered:', data);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-
-        if (data.answer) {
-          setCurrentChat(prev => ({
-            ...prev,
-            activeCall: {
-              roomName: data.roomName,
-              isInitiator: false,
-              status: 'active'
-            }
-          }));
-        } else {
-          notification.warning({ message: 'Call declined' });
-          setCurrentChat(prev => ({
-            ...prev,
-            activeCall: null
-          }));
-        }
-      });
-
-      newSocket.on('video_call_ended', ({ roomName }) => {
-        console.log('Video call ended for room:', roomName);
-        notification.destroy(`call_${roomName}`);
-        setIncomingCalls(prev => prev.filter(call => call.roomName !== roomName));
-        setCurrentChat(prev => {
-          if (prev?.activeCall?.roomName === roomName) {
-            return { ...prev, activeCall: null };
-          }
-          return prev;
-        });
-      });
-
       newSocket.on('connect_error', (err) => {
         console.error('Socket connection error:', err);
       });
@@ -225,112 +195,115 @@ export const ChatProvider = ({ children }) => {
       setSocket(newSocket);
       return newSocket;
     },
-     [user, handleJoinVideoCall]
+    [user, stopRingtone]
   );
+const startVideoCall = useCallback(
+  async (receiverId) => {
+    if (!socket || !user?.id) {
+      console.error('Socket or user not available');
+      notification.error({ message: 'Cannot start call', description: 'Socket or user not available' });
+      return;
+    }
 
-  const startVideoCall = useCallback(async (partnerId) => {
-    try {
-      if (!socket || !isConnected) {
-        notification.error({ message: 'Connection error. Please refresh the page.' });
-        return;
-      }
-  
-      const roomName = `video_call_${user.id}_${partnerId}_${Date.now()}`;
-  
-      setCurrentChat(prev => ({
-        ...prev,
-        activeCall: {
-          roomName,
-          isInitiator: true,
-          status: 'calling'
-        }
-      }));
-  
-      if (audioRef.current) {
-        audioRef.current.src = callSound;
-        audioRef.current.loop = true;
-        audioRef.current.play().catch(e => console.error('Audio play failed:', e));
-      }
-  
+    if (!onlineUsers.includes(receiverId)) {
+      console.error('Receiver is offline');
+      notification.error({ message: 'Cannot start call', description: 'Receiver is offline' });
+      return;
+    }
+
+    const roomName = `video_call_${user.id}_${receiverId}_${Date.now()}`;
+    console.log('Starting video call:', { roomName, receiverId });
+
+    const attemptCall = (attempts = 3, delay = 1000) => {
       socket.emit('initiate_video_call', {
-        receiverId: partnerId,
+        roomName,
         callerId: user.id,
         callerName: user.username,
         callerPhoto: user.photo,
-        roomName
+        receiverId,
       });
-  
-      const callTimeout = setTimeout(() => {
-        if (currentChat?.activeCall?.roomName === roomName && 
-            currentChat?.activeCall?.status === 'calling') {
-          notification.warning({ message: 'Call unanswered' });
-          socket.emit('end_video_call', { roomName });
-          setCurrentChat(prev => ({
-            ...prev,
-            activeCall: null
-          }));
-          if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-          }
+
+      // Listen for call_initiated or call_error
+      const handleCallInitiated = () => {
+        console.log('Call initiated successfully:', roomName);
+        setActiveVideoCall(roomName);
+      };
+
+      const handleCallError = ({ message }) => {
+        console.error('Call error:', message);
+        if (attempts > 1) {
+          console.log(`Retrying call initiation. Attempts left: ${attempts - 1}`);
+          setTimeout(() => attemptCall(attempts - 1, delay * 2), delay);
+        } else {
+          notification.error({ message: 'Call Failed', description: message });
         }
-      }, 30000);
-  
-      return () => clearTimeout(callTimeout);
-    } catch (error) {
-      console.error('Error starting video call:', error);
-      notification.error({ 
-        message: 'Failed to start video call',
-        description: error.message 
-      });
+      };
+
+      socket.once('call_initiated', handleCallInitiated);
+      socket.once('call_error', handleCallError);
+
+      // Cleanup listeners if call doesn't succeed within a timeout
+      setTimeout(() => {
+        socket.off('call_initiated', handleCallInitiated);
+        socket.off('call_error', handleCallError);
+      }, 10000); // 10 seconds timeout
+    };
+
+    attemptCall();
+    return roomName;
+  },
+  [socket, user, onlineUsers]
+);
+const answerCall = useCallback(
+  async (roomName, accept) => {
+    console.log('Answering call:', { roomName, accept, userId: user?.id });
+    stopRingtone();
+
+    if (!socket || !user?.id) {
+      console.error('Socket or user not available');
+      return;
     }
-  }, [socket, isConnected, user, currentChat]);
 
-// Modifiez la fonction answerCall comme ceci :
-const answerCall = useCallback((roomName, accept) => {
-  if (audioRef.current) {
-    audioRef.current.pause();
-    audioRef.current.currentTime = 0;
-  }
-  
-  const call = incomingCalls.find(c => c.roomName === roomName);
-  if (!call || !socket) return;
+    const call = incomingCalls.find((c) => c.roomName === roomName);
+    if (!call) {
+      console.error('Call not found');
+      return;
+    }
 
-  notification.destroy(`call_${roomName}`);
-  setIncomingCalls(prev => prev.filter(c => c.roomName !== roomName));
-
-  socket.emit('answer_video_call', { 
-    roomName,
-    answer: accept,
-    respondentId: user.id,
-    respondentName: user.username
-  });
-
-  if (accept) {
-    setCurrentChat(prev => ({
-      ...prev,
-      activeCall: {
+    if (accept) {
+      socket.emit('answer_video_call', {
         roomName,
-        isInitiator: false,
-        status: 'active'
-      }
-    }));
-    // Ajoutez cette ligne pour rejoindre l'appel immédiatement
-    handleJoinVideoCall(roomName);
-  }
-}, [socket, incomingCalls, user, handleJoinVideoCall]);
-
-  const endVideoCall = useCallback((roomName) => {
-    if (socket) {
-      socket.emit('end_video_call', { roomName });
+        answer: true,
+        respondentId: user.id,
+        respondentName: user.username,
+      });
+      setActiveVideoCall(roomName); // Receiver joins the Jitsi room
+    } else {
+      socket.emit('answer_video_call', {
+        roomName,
+        answer: false,
+        respondentId: user.id,
+      });
+      setIncomingCalls((prev) => prev.filter((c) => c.roomName !== roomName));
     }
-    setCurrentChat(prev => {
-      if (prev?.activeCall?.roomName === roomName) {
-        return { ...prev, activeCall: null };
+  },
+  [socket, user, incomingCalls, stopRingtone]
+);
+
+
+  const endVideoCall = useCallback(
+    (roomName) => {
+      console.log('Ending video call:', roomName);
+      if (socket) {
+        socket.emit('end_video_call', { roomName });
       }
-      return prev;
-    });
-  }, [socket]);
+      stopRingtone();
+      setActiveVideoCall(null);
+      notification.destroy(`call_${roomName}`);
+      setIncomingCalls((prev) => prev.filter((c) => c.roomName !== roomName));
+    },
+    [socket, stopRingtone]
+  );
 
   const updateConversationsOnlineStatus = (onlineUserIds) => {
     setConversations((prev) =>
@@ -341,20 +314,6 @@ const answerCall = useCallback((roomName, accept) => {
           isOnline: onlineUserIds.includes(conv.partner.id),
         },
       }))
-    );
-  };
-
-  const updateConversationsAfterDelete = (messageId) => {
-    setConversations((prev) =>
-      prev.map((conv) => {
-        if (conv.lastMessage?.id === messageId) {
-          const newLastMessage = messages[conv.partner.id]
-            ?.filter((msg) => msg.id !== messageId)
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-          return { ...conv, lastMessage: newLastMessage || null };
-        }
-        return conv;
-      })
     );
   };
 
@@ -388,6 +347,20 @@ const answerCall = useCallback((roomName, accept) => {
             },
           ];
     });
+  };
+
+  const updateConversationsAfterDelete = (messageId) => {
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv.lastMessage?.id === messageId) {
+          const newLastMessage = messages[conv.partner.id]
+            ?.filter((msg) => msg.id !== messageId)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+          return { ...conv, lastMessage: newLastMessage || null };
+        }
+        return conv;
+      })
+    );
   };
 
   const updateConversationReadStatus = (messageId) => {
@@ -440,14 +413,82 @@ const answerCall = useCallback((roomName, accept) => {
       if (userData) {
         await Promise.all([
           userData.roleUtilisateur === 'Collaborateur' ? getPsychologists() : getCollaborators(),
-          fetchConversations()
+          fetchConversations(),
         ]);
       }
     };
-    
+
     const timer = setTimeout(initialize, 100);
     return () => clearTimeout(timer);
   }, [fetchCurrentUser]);
+useEffect(() => {
+  console.log('Incoming calls updated:', incomingCalls); // Add this log
+  incomingCalls.forEach((call) => {
+notification.open({
+  key: `call_${call.roomName}`,
+  message: `Incoming Video Call from ${call.callerName}`,
+  description: (
+ <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '12px' }}>
+  <Button
+    onClick={() => {
+      answerCall(call.roomName, true);
+      notification.destroy(`call_${call.roomName}`);
+    }}
+    style={{
+      width: '100px',
+      height: '36px',
+      borderRadius: '18px',
+      fontWeight: '500',
+      backgroundColor: '#a8b845',
+      borderColor: '#a8b845',
+      color: '#fff',
+      ':hover': {
+        backgroundColor: '#939e3b',
+        borderColor: '#939e3b',
+        color: '#fff'
+      }
+    }}
+  >
+    Accept
+  </Button>
+  <Button
+    onClick={() => {
+      answerCall(call.roomName, false);
+      notification.destroy(`call_${call.roomName}`);
+    }}
+    style={{
+      width: '100px',
+      height: '36px',
+      borderRadius: '18px',
+      fontWeight: '500',
+      backgroundColor: '#ff4d4f',
+      borderColor: '#ff4d4f',
+      color: '#fff',
+      ':hover': {
+        backgroundColor: '#d9363e',
+        borderColor: '#d9363e',
+        color: '#fff'
+      }
+    }}
+  >
+    Decline
+  </Button>
+</div>
+  ),
+  duration: 0,
+  placement: 'topRight',
+  style: { 
+    zIndex: 1002,
+    width: '320px',
+    borderRadius: '8px',
+    boxShadow: '0 3px 10px rgba(0, 0, 0, 0.1)'
+  },
+});});
+
+  return () => {
+    incomingCalls.forEach((call) => notification.destroy(`call_${call.roomName}`));
+  };
+}, [incomingCalls, answerCall]);
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
@@ -610,11 +651,28 @@ const answerCall = useCallback((roomName, accept) => {
     markAsRead,
     startNewChat,
     sendTypingStatus,
-    audioRef,
-    answerCall,
     startVideoCall,
-    endVideoCall
+    answerCall,
+    endVideoCall,
+    activeVideoCall,
   };
 
-  return <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>;
+  useEffect(() => {
+    console.log('Active video call state changed:', activeVideoCall);
+  }, [activeVideoCall]);
+
+  return (
+    <>
+      <ChatContext.Provider value={contextValue}>
+        {children}
+        {activeVideoCall && (
+          <VideoCallOverlay
+            roomName={activeVideoCall}
+            onEndCall={() => endVideoCall(activeVideoCall)}
+            user={user}
+          />
+        )}
+      </ChatContext.Provider>
+    </>
+  );
 };

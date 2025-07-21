@@ -323,7 +323,7 @@ if (!['Admin', 'RH'].includes(req.user.roleUtilisateur)) {
     }
 
     // Update only allowed fields
-    const allowedFields = ['username', 'tel', 'roleUtilisateur', 'isActive', 'photo'];
+  const allowedFields = ['username', 'email', 'tel', 'roleUtilisateur', 'isActive', 'photo'];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
         user[field] = req.body[field];

@@ -1,0 +1,388 @@
+Correction du TD2
+
+Exercice 1:
+
+1)
+
+a*
+
+2)
+
+a                                 a*
+
+3)
+
+a
+
+1             ɛ         2                       b
+
+Vu que cet automate comporte un ɛ-transition => On le déterminise (méthode de ɛ-transition)
+ou bien on rend l’état 1 un état final et on remplace ɛ par b.
+
+Méthode de ɛ-transition :
+
+ɛ-f( 1)= {1,2} = A
+
+𝛿(𝐴, 𝑎) = {1} => ɛ-f( 1)=A
+
+𝛿(𝐴, 𝑏) = {2} => ɛ-f( 2)={2}=B
+
+𝛿(𝐵, 𝑎) = Ø
+
+𝛿(𝐵, 𝑏) = {2} => ɛ-f( 2)={2}=B
+
+NB : L’état final déterministe   est tout ensemble qui contient l’état final non-
+déterministe (2)
+
+a
+
+b                              b
+
+AA                      B
+
+
+4)
+
+a*
+
+a                  b                                  b*
+
+Exercice 2                            a
+
+1)                                       a
+
+a                       a
+
+2)
+
+a
+
+a                             a                    a                          a                     
+     a
+
+3)
+
+a
+
+Exercice 3:
+
+1)   ɛ-f(p)=(p,q,r)
+
+
+Etat                                         a
+
+{P,q,r} /A                               A
+
+b
+
+{q,r} /B
+
+c
+
+{r}/C
+
+B                                             -                                             B       
+                                    C
+
+C                                              -                                             -      
+                                       C
+
+
+a
+
+AA b          b                 b
+
+c
+
+BB
+
+c
+
+CC
+
+c
+
+2)   ɛ-f(0)=(0,1,2)
+
+
+Etat
+
+{0,1,2}/A
+B
+
+C
+D
+E
+
+a
+
+{4,2}/B
+B
+
+{5,4,2}/E
+E
+
+B
+
+b
+
+{1 ,3}/C
+
+{3,1,5} /D
+D
+
+C
+D
+
+A   b                                  a
+
+b                            a
+
+B
+
+b
+
+C
+
+b                         b
+
+a         a                    b            D
+
+E
+E
+
+4)   ɛ-f(1)=(1)
+
+
+Etat
+
+{1}/A
+B
+
+C
+D
+
+a
+
+{2,3,5,6}/B
+
+-
+
+-
+
+b
+
+-
+
+{4, 5,6,8,9} /C
+
+-
+B
+
+c
+
+-
+
+-
+
+{7,2,3,8,9}/D
+
+-
+
+A             a
+
+B
+
+b                         b
+
+c
+
+c
+
+D
+
+
+Exercice 4 :
+
+1)    (a|b)*(aa|bb) (a|b)*
+2)
+
+
+Etat
+
+{0}/A
+B
+
+C
+D
+E
+
+a
+
+{0,1}/B
+
+{0,1,3}/D
+B
+
+D
+D
+
+b
+
+{0,2}/C
+C
+
+{0,2,3}/E
+E
+
+E
+
+A                    a
+
+b                 a
+
+B
+
+b                      a
+
+C
+
+b                                        a
+
+b                    b                D
+
+EE           a
+
+3)    P0 : {A,B,C} /1, {E,D}/2
+
+a                                                       b
+
+A                                                       1                                           
+            1
+
+B                                                       2                                           
+            1
+
+C                                                       1                                           
+            2
+
+a                                                       b
+
+D                                                       2                                           
+            2
+
+E                                                       2                                           
+            2
+
+P1 : {A}/1, {B}/2, {C}/3, {D,E}/4
+
+a                                                       b
+
+D                                                       4                                           
+            4
+
+E                                                       4                                           
+            4
+
+P2 : {A}/1, {B}/2, {C}/3, {D,E}/4🡪 p1=p2 on s’arrête
+
+A
+
+
+a
+
+b                 a
+
+B
+
+b                      a
+
+C
+
+b                                  a,b
+
+D,E
+
+4)
+
+AFD reconnaissant le langage complémentaire:
+
+✓   Doit être déterministe
+
+✓   Doit être complet ( si il n’est pas complet , on ajoute l’état poubelle)
+
+•    état initial reste le même
+
+•    état final 🡺 (normal) ordinaire
+
+•    état (normal) ordinaire + état poubelle (s’il existe) 🡺 finaux
+
+AA                  a
+
+b                 a
+
+BB
+
+b                      a
+
+C
+
+b                     a,b
+
+D , E
+
+
+Exercise 5:
+
+1)
+
+ɛ-f(1)=(1,2)
+
+a                                         b                                         c
+
+
+{1,2}/A
+B
+
+C
+D
+E
+F
+
+{2}/B
+
+-
+
+-
+
+-
+
+-
+
+-
+
+{2,4}/C
+C
+
+C
+
+{5,6}/F
+F
+
+F
+
+{3}/D
+D
+
+{3,5,6}/E
+
+-
+
+-
+
+-
+
+c
+
+A                                                                  D
+

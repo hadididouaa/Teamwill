@@ -3,7 +3,6 @@ import { ChatContext } from '../contexts/ChatContext';
 import { Avatar, Input, Button, List, Typography, Spin, notification, Badge, Empty } from 'antd';
 import { SendOutlined, UserOutlined, CheckOutlined, PaperClipOutlined, DeleteOutlined, CloseOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import moment from 'moment';
-import { JitsiMeeting } from '@jitsi/react-sdk';
 
 const { Text } = Typography;
 
@@ -20,9 +19,8 @@ const ChatWindow = ({ currentChat, embedded = false }) => {
     deleteMessage,
     markAsRead,
     sendTypingStatus,
-    setCurrentChat,
     startVideoCall,
-    endVideoCall
+    endVideoCall,
   } = useContext(ChatContext);
 
   const [messageInput, setMessageInput] = useState('');
@@ -147,87 +145,6 @@ const ChatWindow = ({ currentChat, embedded = false }) => {
 
   return (
     <div className="chat-window-container" style={embedded ? { height: '100%', border: 'none', borderRadius: 0 } : {}}>
-     
-{currentChat?.activeCall?.status === 'active' && (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-    backgroundColor: 'rgba(0,0,0,0.9)'
-  }}>
-    <Button
-      danger
-      onClick={() => endVideoCall(currentChat.activeCall.roomName)}
-      style={{
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        zIndex: 1001
-      }}
-      icon={<CloseOutlined />}
-    >
-      End Call
-    </Button>
-    
-    <div style={{
-      width: '100%',
-      height: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }}>
-      <JitsiMeeting
-        roomName={currentChat.activeCall.roomName}
-        domain="meet.jit.si"
-        configOverwrite={{
-          startWithAudioMuted: false,
-          startWithVideoMuted: false,
-          prejoinPageEnabled: false,
-          disableSimulcast: false,
-          enableNoisyMicDetection: false,
-          enableClosePage: false,
-          disableSelfViewSettings: false,
-          toolbarButtons: [
-            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-            'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-            'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-            'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-            'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
-          ]
-        }}
-        interfaceConfigOverwrite={{
-          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-          SHOW_CHROME_EXTENSION_BANNER: false,
-          MOBILE_APP_PROMO: false,
-          HIDE_INVITE_MORE_HEADER: true,
-          SHOW_JITSI_WATERMARK: false,
-          SHOW_WATERMARK_FOR_GUESTS: false,
-          DEFAULT_BACKGROUND: '#f0f2f5',
-          DEFAULT_REMOTE_DISPLAY_NAME: currentChat.partner.username,
-          DEFAULT_LOCAL_DISPLAY_NAME: user.username,
-        }}
-        userInfo={{
-          displayName: user.username,
-          email: user.email || '',
-        }}
-        onApiReady={(externalApi) => {
-          console.log('Jitsi API ready');
-          externalApi.on('readyToClose', () => {
-            endVideoCall(currentChat.activeCall.roomName);
-          });
-        }}
-        getIFrameRef={(iframeRef) => {
-          iframeRef.style.height = '90%';
-          iframeRef.style.width = '90%';
-          iframeRef.style.borderRadius = '8px';
-        }}
-      />
-    </div>
-  </div>
-)}
       <div className="chat-header">
         <Badge dot color={onlineUsers.includes(currentChat.partner.id) ? '#52c41a' : '#f5222d'} offset={[-5, 20]}>
           <Avatar
@@ -249,7 +166,7 @@ const ChatWindow = ({ currentChat, embedded = false }) => {
             </Text>
           )}
         </div>
-        {onlineUsers.includes(currentChat.partner.id) && !currentChat?.activeCall && (
+        {onlineUsers.includes(currentChat.partner.id) && (
           <Button
             type="primary"
             icon={<VideoCameraOutlined />}

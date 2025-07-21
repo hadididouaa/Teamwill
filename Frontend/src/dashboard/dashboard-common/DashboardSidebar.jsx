@@ -206,7 +206,7 @@ const DashboardSidebar = () => {
             fontSize: '22px',
             letterSpacing: '1px',
             textShadow: '0 2px 4px rgba(0,0,0,0.05)'
-          }}>WELLNESS</h3>
+          }}>TeamWellness</h3>
         </motion.div>
 
         <div style={{ position: 'relative', zIndex: 1 }}>
