@@ -1,4 +1,3 @@
-// frontend/src/pages/MessagingPage.jsx
 import React, { useContext, useEffect, useState } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
 import { Layout, List, Avatar, Typography, Badge, Spin, Tabs, Empty, Button } from 'antd';
@@ -25,16 +24,42 @@ const MessagingPage = () => {
     fetchConversations,
     fetchMessages,
     startNewChat,
+    getPsychologists,
+    getCollaborators, // Ajouté depuis le contexte
   } = useContext(ChatContext);
 
   const [activeTab, setActiveTab] = useState('conversations');
+  const [initialLoad, setInitialLoad] = useState(true);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
   useEffect(() => {
-    if (user) {
-      setActiveTab(user.roleUtilisateur === 'Collaborateur' ? 'psychologists' : 'collaborators');
-    }
-  }, [user]);
+    const loadData = async () => {
+      if (!user) return;
+      
+      try {
+        setInitialLoad(true);
+        
+        // Charger les conversations en premier
+        await fetchConversations();
+        
+        // Déterminer l'onglet actif et charger les données correspondantes
+        const tab = user.roleUtilisateur === 'Collaborateur' ? 'psychologists' : 'collaborators';
+        setActiveTab(tab);
+        
+        if (tab === 'psychologists') {
+          await getPsychologists();
+        } else {
+          await getCollaborators();
+        }
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      } finally {
+        setInitialLoad(false);
+      }
+    };
+
+    loadData();
+  }, [user, fetchConversations, getPsychologists, getCollaborators]);
 
   const initiateChat = async (partner) => {
     if (!partner) return;
@@ -53,7 +78,7 @@ const MessagingPage = () => {
         setCurrentChat(newChat);
       }
     } catch (error) {
-      console.error('Erreur initiation chat:', error);
+      console.error('Error initiating chat:', error);
     }
   };
 
@@ -68,16 +93,15 @@ const MessagingPage = () => {
       >
         <List.Item.Meta
           avatar={
-        // Remplacer les avatars existants par ceci :
-<Badge dot color={isOnline ? '#52c41a' : '#f5222d'} offset={[-5, 20]}>
-  <Avatar
-    src={contact.photo ? `${API_URL}/Uploads/${contact.photo}` : '/assets/img/user.png'}
-    icon={<UserOutlined />}
-    size="default" // ou "small" selon vos préférences
-    style={{ width: 32, height: 32 }}
-    className="avatar-img"
-  />
-</Badge>
+            <Badge dot color={isOnline ? '#52c41a' : '#f5222d'} offset={[-5, 20]}>
+              <Avatar
+                src={contact.photo ? `${API_URL}/Uploads/${contact.photo}` : '/assets/img/user.png'}
+                icon={<UserOutlined />}
+                size="default"
+                style={{ width: 32, height: 32 }}
+                className="avatar-img"
+              />
+            </Badge>
           }
           title={
             <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -89,7 +113,7 @@ const MessagingPage = () => {
           }
           description={
             isConversation ? (
-              <Text ellipsis>{item.lastMessage?.content || 'Aucun message'}</Text>
+              <Text ellipsis>{item.lastMessage?.content || 'No messages'}</Text>
             ) : (
               <Text type="secondary">{contact.roleUtilisateur}</Text>
             )
@@ -103,52 +127,49 @@ const MessagingPage = () => {
   const tabItems = [
     {
       key: 'conversations',
-      label: (
-        <>
-          <CommentOutlined /> Conversations
-        </>
-      ),
-      children: loading ? (
-        <Spin />
+      label: <><CommentOutlined /> Conversations</>,
+      children: initialLoad ? (
+        <Spin tip="Loading conversations..." />
       ) : conversations.length > 0 ? (
-        <List dataSource={conversations} renderItem={(item) => renderContactItem(item, true)} />
+        <List 
+          dataSource={conversations} 
+          renderItem={(item) => renderContactItem(item, true)} 
+        />
       ) : (
         <Empty description="No conversations" />
       ),
     },
     ...(user?.roleUtilisateur === 'Collaborateur'
-      ? [
-          {
-            key: 'psychologists',
-            label: (
-              <>
-                <TeamOutlined /> Psychologues
-              </>
-            ),
-            children: psychologists.length > 0 ? (
-              <List dataSource={psychologists} renderItem={(item) => renderContactItem(item)} />
-            ) : (
-              <Empty description="No psychologists available" />
-            ),
-          },
-        ]
+      ? [{
+          key: 'psychologists',
+          label: <><TeamOutlined /> Psychologists</>,
+          children: initialLoad ? (
+            <Spin tip="Loading psychologists..." />
+          ) : psychologists.length > 0 ? (
+            <List 
+              dataSource={psychologists} 
+              renderItem={(item) => renderContactItem(item)} 
+            />
+          ) : (
+            <Empty description="No psychologists available" />
+          ),
+        }]
       : []),
     ...(user?.roleUtilisateur === 'Psychologue'
-      ? [
-          {
-            key: 'collaborators',
-            label: (
-              <>
-                <UserOutlined /> Collaborateurs
-              </>
-            ),
-            children: collaborators.length > 0 ? (
-              <List dataSource={collaborators} renderItem={(item) => renderContactItem(item)} />
-            ) : (
-              <Empty description="No collaborators available" />
-            ),
-          },
-        ]
+      ? [{
+          key: 'collaborators',
+          label: <><UserOutlined /> Collaborators</>,
+          children: initialLoad ? (
+            <Spin tip="Loading collaborators..." />
+          ) : collaborators.length > 0 ? (
+            <List 
+              dataSource={collaborators} 
+              renderItem={(item) => renderContactItem(item)} 
+            />
+          ) : (
+            <Empty description="No collaborators available" />
+          ),
+        }]
       : []),
   ];
 
@@ -161,7 +182,12 @@ const MessagingPage = () => {
               Messaging
             </Title>
           </div>
-          <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} className="messaging-tabs" />
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            items={tabItems} 
+            className="messaging-tabs" 
+          />
         </Sider>
         <Content className="messaging-content">
           {openChats.map((chat, index) => (

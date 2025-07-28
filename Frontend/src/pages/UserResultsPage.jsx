@@ -240,7 +240,7 @@ const UserResultsPage = () => {
         <Card 
           key={index} 
           style={{ marginBottom: '16px', borderLeft: `3px solid ${themeColor}` }}
-          title={`${result.questionnaire?.title || 'Questionnaire'} - ${new Date(result.createdAt).toLocaleDateString()}`}
+          title={`${result.questionnaire?.title || 'Questionnaire'}`}
         >
           <Descriptions bordered size="small">
             <Descriptions.Item label="Total score" span={3}>

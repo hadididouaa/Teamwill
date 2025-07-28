@@ -124,12 +124,12 @@ const handleSubmit = async (values) => {
         >
           <Result
             status="success"
-            title="Merci pour vos réponses !"
+            title="Thank you for your answers!"
             subTitle={`Votre score total: ${result.totalScore}`}
             extra={[
               <Button 
                 key="back" 
-                onClick={() => navigate('/questionnaires')}
+                onClick={() => navigate('/dashboard')}
                 style={{
                   backgroundColor: greenTheme.primary,
                   borderColor: greenTheme.secondary

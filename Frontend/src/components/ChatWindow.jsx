@@ -112,17 +112,19 @@ const ChatWindow = ({ currentChat, embedded = false }) => {
     scrollToBottom();
   }, [messages[currentChat?.partner.id], typingStatus[currentChat?.partner.id]]);
 
-  useEffect(() => {
-    if (!socket || !currentChat || !messages[currentChat?.partner.id]?.length) return;
+useEffect(() => {
+  if (!socket || !currentChat || !messages[currentChat?.partner.id]?.length) return;
 
-    const unreadMessages = messages[currentChat.partner.id].filter(
-      (msg) => msg.senderId === currentChat.partner.id && !msg.isRead
-    );
+  const unreadMessages = messages[currentChat.partner.id].filter(
+    (msg) => msg.senderId === currentChat.partner.id && !msg.isRead
+  );
 
+  if (unreadMessages.length > 0) {
     unreadMessages.forEach((msg) => {
       markAsRead(msg.id);
     });
-  }, [messages, currentChat, socket, markAsRead]);
+  }
+}, [messages, currentChat, socket, markAsRead]);
 
   useEffect(() => {
     return () => {

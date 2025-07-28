@@ -33,30 +33,37 @@ const GlobalChatWidget = () => {
   const toggleChat = () => {
     setVisible(!visible);
   };
+const initiateChat = async (partner) => {
+  if (!partner) return;
 
-  const initiateChat = async (partner) => {
-    if (!partner) return;
-
-    setLoadingChat(true);
-    try {
-      const existingConv = conversations.find((conv) => conv.partner.id === partner.id);
-      if (existingConv) {
-        if (!openChats.some((chat) => chat.partner.id === partner.id)) {
-          setOpenChats((prev) => [...prev, existingConv]);
-        }
-        setCurrentChat(existingConv);
-        await fetchMessages(partner.id);
-      } else {
-        const newChat = await startNewChat(partner.id);
-        setOpenChats((prev) => [...prev, newChat]);
-        setCurrentChat(newChat);
+  setLoadingChat(true);
+  try {
+    const existingConv = conversations.find((conv) => conv.partner.id === partner.id);
+    if (existingConv) {
+      if (!openChats.some((chat) => chat.partner.id === partner.id)) {
+        setOpenChats((prev) => [...prev, existingConv]);
       }
-    } catch (error) {
-      console.error('Error initiating chat:', error);
-    } finally {
-      setLoadingChat(false);
+      setCurrentChat(existingConv);
+      await fetchMessages(partner.id);
+      
+      // Marquer les messages non lus comme lus
+      const unreadMessages = messages[partner.id]?.filter(
+        msg => msg.senderId === partner.id && !msg.isRead
+      );
+      if (unreadMessages?.length > 0) {
+        await Promise.all(unreadMessages.map(msg => markAsRead(msg.id)));
+      }
+    } else {
+      const newChat = await startNewChat(partner.id);
+      setOpenChats((prev) => [...prev, newChat]);
+      setCurrentChat(newChat);
     }
-  };
+  } catch (error) {
+    console.error('Error initiating chat:', error);
+  } finally {
+    setLoadingChat(false);
+  }
+};
 
   const closeChat = (partnerId) => {
     setOpenChats((prev) => prev.filter((chat) => chat.partner.id !== partnerId));

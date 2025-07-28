@@ -72,6 +72,14 @@ useEffect(() => {
       console.log('Ringtone stopped');
     }
   }, []);
+  const updateUserLists = (user) => {
+  setPsychologists(prev => 
+    prev.map(p => p.id === user.id ? { ...p, isOnline: user.isOnline } : p)
+  );
+  setCollaborators(prev => 
+    prev.map(c => c.id === user.id ? { ...c, isOnline: user.isOnline } : c)
+  );
+};
 
   const initializeSocket = useCallback(
     (userId) => {
@@ -95,6 +103,8 @@ newSocket.on('reconnect', () => {
         console.log('Socket disconnected');
         setIsConnected(false);
       });
+
+
 
       newSocket.on('online_users', (users) => {
         setOnlineUsers(users.map((u) => u.id));
@@ -559,16 +569,41 @@ notification.open({
     }
   };
 
-  const markAsRead = async (messageId) => {
-    try {
-      if (socket) {
-        socket.emit('mark_read', { messageId });
-      }
-      await axios.put(`/api/messages/mark-read/${messageId}`);
-    } catch (error) {
-      console.error('Error marking message as read:', error);
+const markAsRead = async (messageId) => {
+  try {
+    if (socket) {
+      socket.emit('mark_read', { messageId });
     }
-  };
+    await axios.put(`/api/messages/mark-read/${messageId}`);
+    
+    // Mettre à jour l'état local
+    setMessages(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(partnerId => {
+        updated[partnerId] = updated[partnerId].map(msg => 
+          msg.id === messageId ? { ...msg, isRead: true } : msg
+        );
+      });
+      return updated;
+    });
+    
+    // Mettre à jour le compteur de messages non lus dans les conversations
+    setConversations(prev => 
+      prev.map(conv => {
+        if (conv.lastMessage?.id === messageId) {
+          return {
+            ...conv,
+            lastMessage: { ...conv.lastMessage, isRead: true },
+            unreadCount: Math.max(0, conv.unreadCount - 1)
+          };
+        }
+        return conv;
+      })
+    );
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+  }
+};
 
   const sendTypingStatus = (isTyping, partnerId) => {
     if (socket && partnerId) {
