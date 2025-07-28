@@ -11,7 +11,7 @@ const sidebar_data = [
       { id: 1, link: "/dashboard", icon: "fas fa-home", title: "Dashboard" },
       { id: 2, link: "/questionnaires/create", icon: "fas fa-plus-circle", title: "Create a questionnaire" },
       { id: 3, link: "/QuestionnaireList", icon: "fas fa-list", title: "Questionnaires" },
-      { id: 4, link: "/all-resultss", icon: "fas fa-chart-bar", title: "Results" },
+     
      
       { id: 6, link: "/profile", icon: "fas fa-user-circle", title: "My Profile" }
     ]
@@ -20,8 +20,9 @@ const sidebar_data = [
     id: 2,
     title: "Collaborator",
     sidebar_details: [
+            { id: 1, link: "/dashboard", icon: "fas fa-home", title: "Dashboard" },
       { id: 7, link: "/Cquestionnaires", icon: "fas fa-chalkboard-teacher", title: "Questionnaires" },
-      { id: 8, link: "/results", icon: "fas fa-video", title: "My Result" },
+
   
       { id: 10, link: "/profile", icon: "fas fa-user-circle", title: "My Profile" }
     ],
@@ -31,7 +32,7 @@ const sidebar_data = [
     title: "Administration",
     sidebar_details: [
       { id: 11, link: "/listUsers", icon: "fas fa-users-cog", title: "User management" },
-      { id: 12, link: "/all-resultss", icon: "fas fa-chart-bar", title: "Results" },
+
        { id: 13, link: "/QuestionnaireList", icon: "fas fa-list", title: "Questionnaires" },
       
     
@@ -42,7 +43,7 @@ const sidebar_data = [
     title: "RH",
     sidebar_details: [
       { id: 14, link: "/listUsers", icon: "fas fa-users-cog", title: "User management" },
-      { id: 15, link: "/all-resultss", icon: "fas fa-chart-bar", title: "Results" },
+
        { id: 16, link: "/QuestionnaireList", icon: "fas fa-list", title: "Questionnaires" },
       
      

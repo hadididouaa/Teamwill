@@ -68,6 +68,9 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
         onEndCall();
       }
     });
+
+    // Activer le partage d'écran par défaut
+    externalApi.executeCommand('toggleShareScreen');
   };
 
   if (!roomName || !user) {
@@ -78,7 +81,7 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
     <div style={overlayStyle}>
       <JitsiMeeting
         key={roomName}
-         domain="jitsi.riot.im"
+        domain="jitsi.riot.im"
         roomName={roomName}
         onApiReady={handleApiReady}
         configOverwrite={{
@@ -86,7 +89,13 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
           startWithVideoMuted: false,
           prejoinPageEnabled: false,
           disableSimulcast: false,
-          toolbarButtons: ['microphone', 'camera', 'hangup', 'settings'],
+          toolbarButtons: [
+            'microphone', 
+            'camera', 
+            'desktop', // Bouton pour le partage d'écran
+            'hangup', 
+            'settings'
+          ],
           constraints: {
             video: {
               height: {
@@ -111,6 +120,7 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
         userInfo={{
           displayName: user.username,
           email: user.email || '',
+          avatarUrl: user.photo || '', // Utilisation de la photo de l'utilisateur
         }}
         getIFrameRef={(iframeRef) => {
           iframeRef.style.height = '100%';

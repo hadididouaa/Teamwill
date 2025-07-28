@@ -1,0 +1,33 @@
+Les Acteurs : 
+
+Admin:
+  -> gerer compte utilisateur ( prof / eleve / parent )
+  -> gestion des abonnement
+  ->Acceder Dashbored
+  -> gerer categorie cours
+  ->  gerer categorie produit (magazines ...)
+  -> gerer cours 
+  -> gerer produit 
+  -> gerer les reclamation 
+  ->gestion des articles 
+ 
+
+Prof : 
+   	-> gerer les cours ( apres autorisation )
+  	 -> gerer les quiz 
+  	 -> gerer les question de quiz
+   	-> reclamation
+   
+ eleve
+ 	-> acceder au cour 
+ 	-> acceder au quiz 
+ 	->acceder au liste des produits 
+
+ parent : 
+	->reclamer 
+	-> Acceder au liste produits 
+	-> passer commande 
+	-> Acceder historique enfant 
+	-> suivre les note de quiz 
+	-> passer  commande - payement 
+	-> s inscrire a un abonnement - payment 

@@ -72,9 +72,7 @@ const QuestionnaireDetail = () => {
               text={questionnaire.isActive ? 'Active' : 'Inactive'} 
             />
           </Descriptions.Item>
-          <Descriptions.Item label="Created By">
-            {questionnaire.createdBy}
-          </Descriptions.Item>
+          
           <Descriptions.Item label="Created At">
             {new Date(questionnaire.createdAt).toLocaleString()}
           </Descriptions.Item>

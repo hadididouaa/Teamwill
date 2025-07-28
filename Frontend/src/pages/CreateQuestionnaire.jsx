@@ -14,25 +14,26 @@ const CreateQuestionnaire = () => {
 
   // Initial data for the 3 required analyses
   const initialAnalyses = [
-    { title: 'Résultat Faible', minScore: 0, maxScore: 10 },
-    { title: 'Résultat Moyen', minScore: 11, maxScore: 20 },
-    { title: 'Résultat Élevé', minScore: 21, maxScore: 30 }
+    { title: 'Low Result', minScore: 0, maxScore: 10 },
+    { title: 'Average Result', minScore: 11, maxScore: 20 },
+    { title: 'High Result', minScore: 21, maxScore: 30 }
   ];
-const validateQuestions = (questions) => {
-  return questions.every(q => 
-    q.text?.trim() && 
-    q.options?.length > 0 &&
-    q.options.every(o => o.text?.trim() && o.score !== undefined)
-  );
-};
- 
-const onFinish = async (values) => {
-  if (!validateQuestions(values.questions)) {
-    message.error('Toutes les questions doivent avoir du texte et au moins une option valide');
-    return;
-  }
 
-    // Validation des scores
+  const validateQuestions = (questions) => {
+    return questions.every(q => 
+      q.text?.trim() && 
+      q.options?.length > 0 &&
+      q.options.every(o => o.text?.trim() && o.score !== undefined)
+    );
+  };
+  
+  const onFinish = async (values) => {
+    if (!validateQuestions(values.questions)) {
+      message.error('All questions must have text and at least one valid option');
+      return;
+    }
+
+    // Score validation
     const scoresValid = values.analyses.every(a => 
       a.minScore !== undefined && 
       a.maxScore !== undefined &&
@@ -40,7 +41,7 @@ const onFinish = async (values) => {
     );
     
     if (!scoresValid) {
-      message.error('Les scores doivent être valides (min < max)');
+      message.error('Scores must be valid (min < max)');
       return;
     }
 
@@ -49,10 +50,10 @@ const onFinish = async (values) => {
       await axios.post(`${import.meta.env.VITE_API_URL}/questionnaires`, values, {
         withCredentials: true
       });
-      message.success('Questionnaire créé avec succès');
+      message.success('Questionnaire created successfully');
       navigate('/QuestionnaireList');
     } catch (error) {
-      message.error(error.response?.data?.message || 'Erreur lors de la création');
+      message.error(error.response?.data?.message || 'Error creating questionnaire');
       console.error('Error:', error.response?.data);
     } finally {
       setLoading(false);
@@ -62,7 +63,7 @@ const onFinish = async (values) => {
   return (
     <DashboardLayout>
       <Card 
-        title="Créer un nouveau questionnaire" 
+        title="Create New Questionnaire" 
         style={{ borderColor: '#a8b845', borderWidth: 2 }}
         headStyle={{ backgroundColor: '#a8b845', color: 'white' }}
       >
@@ -73,15 +74,15 @@ const onFinish = async (values) => {
           autoComplete="off"
           initialValues={{ analyses: initialAnalyses }} // Set initial analyses
         >
-          {/* Section Informations de base */}
+          {/* Basic Information Section */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="title"
-                label="Titre du questionnaire"
-                rules={[{ required: true, message: 'Veuillez entrer un titre' }]}
+                label="Questionnaire Title"
+                rules={[{ required: true, message: 'Please enter a title' }]}
               >
-                <Input placeholder="Titre du questionnaire" />
+                <Input placeholder="Questionnaire title" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -89,14 +90,14 @@ const onFinish = async (values) => {
                 name="description"
                 label="Description"
               >
-                <TextArea rows={3} placeholder="Description du questionnaire" />
+                <TextArea rows={3} placeholder="Questionnaire description" />
               </Form.Item>
             </Col>
           </Row>
 
           <Divider orientation="left">Questions</Divider>
 
-          {/* Section Questions */}
+          {/* Questions Section */}
           <Form.List name="questions">
             {(fields, { add, remove }) => (
               <>
@@ -112,7 +113,7 @@ const onFinish = async (values) => {
                         icon={<MinusOutlined />}
                         size="small"
                       >
-                        Supprimer
+                        Remove
                       </Button>
                     }
                   >
@@ -120,22 +121,22 @@ const onFinish = async (values) => {
                       <Form.Item
                         {...restField}
                         name={[name, 'text']}
-                        label="Texte de la question"
-                        rules={[{ required: true, message: 'Veuillez entrer la question' }]}
+                        label="Question Text"
+                        rules={[{ required: true, message: 'Please enter the question' }]}
                       >
-                        <TextArea rows={2} placeholder="Texte de la question" />
+                        <TextArea rows={2} placeholder="Question text" />
                       </Form.Item>
 
                       <Form.Item
                         {...restField}
                         name={[name, 'order']}
-                        label="Ordre d'affichage"
+                        label="Display Order"
                         initialValue={name + 1}
                       >
                         <InputNumber min={1} max={30} />
                       </Form.Item>
 
-                      <Divider orientation="left">Options de réponse</Divider>
+                      <Divider orientation="left">Answer Options</Divider>
 
                       <Form.List
                         {...restField}
@@ -148,14 +149,14 @@ const onFinish = async (values) => {
                                 <Form.Item
                                   {...optRestField}
                                   name={[optName, 'text']}
-                                  rules={[{ required: true, message: 'Texte requis' }]}
+                                  rules={[{ required: true, message: 'Text required' }]}
                                 >
-                                  <Input placeholder="Texte de la réponse" />
+                                  <Input placeholder="Option text" />
                                 </Form.Item>
                                 <Form.Item
                                   {...optRestField}
                                   name={[optName, 'score']}
-                                  rules={[{ required: true, message: 'Score requis' }]}
+                                  rules={[{ required: true, message: 'Score required' }]}
                                 >
                                   <InputNumber placeholder="Score" min={0} max={10} />
                                 </Form.Item>
@@ -173,7 +174,7 @@ const onFinish = async (values) => {
                                 icon={<PlusOutlined />}
                                 disabled={optionFields.length >= 3}
                               >
-                                Ajouter une option (max 3)
+                                Add option (max 3)
                               </Button>
                             </Form.Item>
                           </>
@@ -192,15 +193,15 @@ const onFinish = async (values) => {
                     disabled={fields.length >= 30}
                     style={{ borderColor: '#a8b845', color: '#a8b845' }}
                   >
-                    Ajouter une question (max 30)
+                    Add question (max 30)
                   </Button>
                 </Form.Item>
               </>
             )}
           </Form.List>
 
-          {/* Section Analyses et Recommandations */}
-          <Divider orientation="left">Analyses et Recommandations (3 requises)</Divider>
+          {/* Analysis and Recommendations Section */}
+          <Divider orientation="left">Analysis and Recommendations (3 required)</Divider>
           
           <Form.List name="analyses">
             {(fields) => (
@@ -208,35 +209,35 @@ const onFinish = async (values) => {
                 {fields.map(({ key, name, ...restField }) => (
                   <Card 
                     key={key} 
-                    title={`Analyse ${name + 1}`}
+                    title={`Analysis ${name + 1}`}
                     style={{ marginBottom: 16, borderColor: '#d9d9d9' }}
                   >
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Form.Item
                         {...restField}
                         name={[name, 'title']}
-                        label="Titre de l'analyse"
-                        rules={[{ required: true, message: 'Titre requis' }]}
+                        label="Analysis Title"
+                        rules={[{ required: true, message: 'Title required' }]}
                       >
-                        <Input placeholder="Ex: Résultat faible" />
+                        <Input placeholder="Ex: Low Result" />
                       </Form.Item>
 
                       <Form.Item
                         {...restField}
                         name={[name, 'description']}
                         label="Description"
-                        rules={[{ required: true, message: 'Description requise' }]}
+                        rules={[{ required: true, message: 'Description required' }]}
                       >
-                        <TextArea rows={3} placeholder="Description de ce résultat" />
+                        <TextArea rows={3} placeholder="Description of this result" />
                       </Form.Item>
 
                       <Form.Item
                         {...restField}
                         name={[name, 'recommendations']}
-                        label="Recommandations"
-                        rules={[{ required: true, message: 'Recommandations requises' }]}
+                        label="Recommendations"
+                        rules={[{ required: true, message: 'Recommendations required' }]}
                       >
-                        <TextArea rows={3} placeholder="Que recommander pour ce résultat?" />
+                        <TextArea rows={3} placeholder="What to recommend for this result?" />
                       </Form.Item>
 
                       <Row gutter={16}>
@@ -244,8 +245,8 @@ const onFinish = async (values) => {
                           <Form.Item
                             {...restField}
                             name={[name, 'minScore']}
-                            label="Score minimum"
-                            rules={[{ required: true, message: 'Score min requis' }]}
+                            label="Minimum Score"
+                            rules={[{ required: true, message: 'Min score required' }]}
                           >
                             <InputNumber min={0} style={{ width: '100%' }} />
                           </Form.Item>
@@ -254,14 +255,14 @@ const onFinish = async (values) => {
                           <Form.Item
                             {...restField}
                             name={[name, 'maxScore']}
-                            label="Score maximum"
+                            label="Maximum Score"
                             rules={[{ 
                               required: true, 
-                              message: 'Score max requis',
+                              message: 'Max score required',
                               validator: (_, value) => {
                                 const minScore = form.getFieldValue(['analyses', name, 'minScore']);
                                 if (value <= minScore) {
-                                  return Promise.reject('Le score max doit être > au score min');
+                                  return Promise.reject('Max score must be > min score');
                                 }
                                 return Promise.resolve();
                               }
@@ -287,7 +288,7 @@ const onFinish = async (values) => {
               style={{ backgroundColor: '#a8b845', borderColor: '#a8b845' }}
               size="large"
             >
-              Enregistrer le questionnaire
+              Save Questionnaire
             </Button>
           </Form.Item>
         </Form>

@@ -12,7 +12,7 @@ import {
   LineChartOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
-import DashboardLayout from "../layouts/DashboardLayout";
+
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, registerables } from 'chart.js';
 import { motion } from 'framer-motion';
@@ -138,7 +138,7 @@ const AllQuestionnaireResults = () => {
   }
 
   return (
-    <DashboardLayout>
+ 
       <motion.div
         initial="hidden"
         animate="visible"
@@ -325,7 +325,7 @@ const AllQuestionnaireResults = () => {
           </>
         )}
       </motion.div>
-    </DashboardLayout>
+  
   );
 };
 

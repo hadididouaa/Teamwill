@@ -49,6 +49,10 @@ const initializeSocket = (server) => {
     socket.join(`user_${socket.user.id}`);
     onlineUsers.set(socket.user.id, socket.user);
     io.emit('online_users', Array.from(onlineUsers.values()));
+      socket.emit('initial_data', {
+    onlineUsers: Array.from(onlineUsers.values()),
+    // Ajoutez d'autres données initiales si nécessaire
+  });
 
 // server/index.js
 socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomName }) => {
