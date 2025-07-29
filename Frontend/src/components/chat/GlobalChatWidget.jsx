@@ -293,41 +293,39 @@ const initiateChat = async (partner) => {
           }}
           onClick={() => setCurrentChat(chat)}
         >
-          <div
-            style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid #f0f0f0',
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: '#fafafa',
-            }}
-          >
-            <Avatar
-              src={chat.partner.photo ? `${API_URL}/Uploads/${chat.partner.photo}` : '/assets/img/user.png'}
-              icon={<UserOutlined />}
-              size="small"
-              className="avatar-img"
-            />
-            <Text strong style={{ marginLeft: 8, flex: 1 }}>
-              {chat.partner.username}
-            </Text>
-            <Button
-              type="text"
-              icon={<MinusOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                minimizeChat(chat);
-              }}
-            />
-            <Button
-              type="text"
-              icon={<CloseOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                closeChat(chat.partner.id);
-              }}
-            />
-          </div>
+     <div
+  style={{
+    padding: '10px 16px',
+    borderBottom: '0.5px solid #f0f0f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between', // Ajouté pour séparer le titre et les boutons
+    backgroundColor: '#fafafa',
+  }}
+>
+  <Text strong style={{ marginLeft: 8 }}></Text>
+  <div>
+    <Button
+      type="text"
+      size="small"
+      icon={<MinusOutlined />}
+      onClick={(e) => {
+        e.stopPropagation();
+        minimizeChat(chat);
+      }}
+      style={{ marginRight: 4 }}
+    />
+    <Button
+      type="text"
+      size="small"
+      icon={<CloseOutlined />}
+      onClick={(e) => {
+        e.stopPropagation();
+        closeChat(chat.partner.id);
+      }}
+    />
+  </div>
+</div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <ChatWindow currentChat={chat} embedded />
           </div>

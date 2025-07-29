@@ -158,7 +158,7 @@ useEffect(() => {
           />
         </Badge>
         <div className="chat-header-info">
-          <Text strong style={{ paddingLeft: 24, paddingRight: 24 }}>
+          <Text strong style={{ paddingLeft: 1, paddingRight: 24 }}>
             {currentChat.partner.username.toUpperCase()}
           </Text>
           <Text type="secondary">{onlineUsers.includes(currentChat.partner.id) ? ' Online' : ' Offline'}</Text>
@@ -176,7 +176,7 @@ useEffect(() => {
             style={{ marginLeft: 'auto', backgroundColor: '#a8b845', borderColor: '#a8b845' }}
             disabled={!isConnected}
           >
-            Video Call
+          
           </Button>
         )}
       </div>
