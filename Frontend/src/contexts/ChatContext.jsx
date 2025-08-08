@@ -221,7 +221,8 @@ const startVideoCall = useCallback(
       return;
     }
 
-    const roomName = `video_call_${user.id}_${receiverId}_${Date.now()}`;
+// In your startVideoCall function
+const roomName = `video_call_${Math.min(user.id, receiverId)}_${Math.max(user.id, receiverId)}`;
     console.log('Starting video call:', { roomName, receiverId });
 
     const attemptCall = (attempts = 3, delay = 1000) => {

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
 import { Spin } from 'antd';
 import { JitsiMeeting } from '@jitsi/react-sdk';
+import axios from 'axios';
 
 const overlayStyle = {
   position: 'fixed',
@@ -18,7 +19,63 @@ const overlayStyle = {
 const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
   const { socket } = useContext(ChatContext);
   const [jitsiApi, setJitsiApi] = useState(null);
+  const [jitsiToken, setJitsiToken] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+useEffect(() => {
+  const fetchJitsiToken = async () => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/generate-jitsi-token`,
+        {
+          roomName,
+          userId: user.id,
+          username: user.username,
+          avatarUrl: user.photo || ''
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      console.log('Token response:', response.data); // Debug log
+      if (response.data.token) {
+        setJitsiToken(response.data.token);
+        setLoading(false);
+      } else {
+        throw new Error('Invalid token response');
+      }
+    } catch (error) {
+      console.error('Token fetch error:', error);
+      setError(error.response?.data?.message || 'Failed to initialize call. Please try again.');
+      setLoading(false);
+    }
+  };
 
+  fetchJitsiToken();
+}, [roomName, user]);
+// In your VideoCallOverlay component
+useEffect(() => {
+  const handleJitsiError = (error) => {
+    console.error('Jitsi error:', error);
+    if (error === 'conference.setup_failed') {
+      setError('Failed to join the call. Please try again.');
+    }
+  };
+
+  if (jitsiApi) {
+    jitsiApi.on('conferenceError', handleJitsiError);
+  }
+
+  return () => {
+    if (jitsiApi) {
+      jitsiApi.off('conferenceError', handleJitsiError);
+    }
+  };
+}, [jitsiApi]);
+  // Gestion des événements Socket.IO
   useEffect(() => {
     if (!socket || !roomName) return;
 
@@ -39,6 +96,7 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
     };
   }, [socket, roomName, onEndCall, jitsiApi]);
 
+  // Nettoyage de l'API Jitsi
   useEffect(() => {
     return () => {
       if (jitsiApi) {
@@ -48,7 +106,10 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
       }
     };
   }, [jitsiApi]);
-
+  
+useEffect(() => {
+  console.log('Jitsi Token:', jitsiToken); // Ajoutez ce log
+}, [jitsiToken]);
   const handleApiReady = (externalApi) => {
     console.log('Jitsi API ready for room:', roomName);
     setJitsiApi(externalApi);
@@ -70,130 +131,53 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
     });
   };
 
-  if (!roomName || !user) {
-    return null;
+  if (error) {
+    return <div style={overlayStyle}>Error: {error}</div>;
+  }
+
+  if (loading || !jitsiToken) {
+    return <div style={overlayStyle}><Spin size="large" /></div>;
   }
 
   return (
-    <div style={overlayStyle}>
+     <div style={overlayStyle}>
       <JitsiMeeting
-        key={roomName}
-        domain="jitsi.riot.im"
+        domain="8x8.vc"
         roomName={roomName}
-        onApiReady={handleApiReady}
+        jwt={jitsiToken}
         configOverwrite={{
           startWithAudioMuted: false,
           startWithVideoMuted: false,
-          prejoinPageEnabled: false, // Désactive complètement la page de pré-join
-          disableSimulcast: false,
-          toolbarButtons: [
-            'microphone', 
-            'camera', 
-            'desktop',
-            'hangup', 
-            'settings'
-          ],
-          constraints: {
-            video: {
-              height: {
-                ideal: 720,
-                max: 720,
-                min: 240,
-              },
-            },
-          },
-          disableProfile: true,
-          enableWelcomePage: false, // Désactive la page de bienvenue
-          hideConferenceTimer: false,
-          enableClosePage: false,
+          disableModeratorIndicator: true,
           enableNoisyMicDetection: false,
-          disableDeepLinking: true,
+          prejoinPageEnabled: false,
+          enableClosePage: false,
           disableInviteFunctions: true,
-          requireDisplayName: false,
-          enableEmailInStats: false,
-          disableRemoteMute: true,
-          enableFeaturesBasedOnToken: false,
-          enableForcedReload: false,
-          enableLayerSuspension: false,
-          enableNoAudioDetection: false,
-          enableTalkWhileMuted: false,
-          hideLobbyButton: true,
-          hideConferenceSubject: true,
-          hideParticipantsStats: true,
-          hideRecordingLabel: true,
-          hideShareAudioHelper: true,
-          mobileAppPromo: false,
-          remoteVideoMenu: {
-            disableKick: true
-          },
-          startAudioOnly: false,
-          startAudioMuted: 0,
-          startVideoMuted: 0,
-          subject: 'Video Call',
-          testing: {
-            disableE2EE: false,
-            p2pTestMode: false
-          },
-          videoQuality: {
-            preferredCodec: 'VP8',
-            maxBitratesVideo: {
-              low: 200000,
-              standard: 500000,
-              high: 1500000
-            }
-          }
+          toolbarButtons: [
+            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+            'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+            'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+            'videoquality', 'filmstrip', 'feedback', 'stats', 'shortcuts',
+            'tileview', 'select-background', 'download', 'help', 'mute-everyone'
+          ],
         }}
-        interfaceConfigOverwrite={{
+      interfaceConfigOverwrite={{
           DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
           SHOW_JITSI_WATERMARK: false,
           SHOW_WATERMARK_FOR_GUESTS: false,
           DEFAULT_REMOTE_DISPLAY_NAME: 'Participant',
           DEFAULT_LOCAL_DISPLAY_NAME: user.username,
-          HIDE_INVITE_MORE_HEADER: true,
-          MOBILE_APP_PROMO: false,
-          SHOW_CHROME_EXTENSION_BANNER: false,
-          DISABLE_PRESENCE_STATUS: true,
-          DISABLE_TRANSCRIPTION_SUBTITLES: true,
-          DISABLE_VIDEO_BACKGROUND: true,
-          DISABLE_FOCUS_INDICATOR: true,
-          DISABLE_DOMINANT_SPEAKER_INDICATOR: true,
-          DISABLE_RINGING: true,
-          ENABLE_DIAL_OUT: false,
-          ENABLE_FEEDBACK_ANIMATION: false,
-          FILM_STRIP_MAX_HEIGHT: 120,
-          GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
-          INITIAL_TOOLBAR_TIMEOUT: 20000,
-          JITSI_WATERMARK_LINK: '',
-          LANG_DETECTION: false,
-          LOCAL_THUMBNAIL_RATIO: 16/9,
-          MAXIMUM_ZOOMING_COEFFICIENT: 1.3,
-          NATIVE_APP_NAME: 'Your App',
-          OPTIMAL_BROWSERS: ['chrome', 'firefox', 'safari'],
-          RECENT_LIST_ENABLED: false,
-          SETTINGS_SECTIONS: ['devices', 'language', 'moderator'],
-          SHOW_BRAND_WATERMARK: false,
-          SHOW_POWERED_BY: false,
-          SUPPORT_URL: '',
-          TOOLBAR_ALWAYS_VISIBLE: true,
-          TOOLBAR_BUTTONS: [
-            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-            'fodeviceselection', 'hangup', 'profile', 'info', 'chat', 'recording',
-            'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-            'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-            'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
-            'security'
-          ],
-          TOOLBAR_TIMEOUT: 4000,
-          VERTICAL_FILMSTRIP: true,
-          VIDEO_LAYOUT_FIT: 'both',
-          TILE_VIEW_MAX_COLUMNS: 5
         }}
         userInfo={{
           displayName: user.username,
           email: user.email || '',
-          avatarUrl: user.photo || '',
         }}
-        getIFrameRef={(iframeRef) => {
+       onApiReady={(externalApi) => {
+          setJitsiApi(externalApi);
+          externalApi.executeCommand('displayName', user.username);
+          externalApi.executeCommand('toggleTileView');
+        }}
+           getIFrameRef={(iframeRef) => {
           iframeRef.style.height = '100%';
           iframeRef.style.width = '100%';
         }}
@@ -201,5 +185,6 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
     </div>
   );
 };
+
 
 export default VideoCallOverlay;

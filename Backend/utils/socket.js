@@ -54,81 +54,73 @@ const initializeSocket = (server) => {
     // Ajoutez d'autres données initiales si nécessaire
   });
 
-// server/index.js
 socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomName }) => {
   console.log(`Initiating call from ${socket.user.id} to ${receiverId} in room ${roomName}`);
-  if (!onlineUsers.has(receiverId)) {
-    console.log(`User ${receiverId} is offline`);
-    socket.emit('call_error', { message: 'User is offline' });
-    return;
-  }
-
+  
+  // Check if receiver is online
   const receiverSocketIds = io.sockets.adapter.rooms.get(`user_${receiverId}`);
   if (!receiverSocketIds || receiverSocketIds.size === 0) {
-    console.log(`Receiver ${receiverId} is not in user_${receiverId} room`);
+    console.log(`Receiver ${receiverId} is not connected`);
     socket.emit('call_error', { message: 'Receiver not available' });
     return;
   }
 
-  activeCalls.set(roomName, {
+  // Create call object
+  const call = {
     callerId: socket.user.id,
     receiverId,
     roomName,
     status: 'pending',
     timestamp: new Date(),
     callerName,
-    callerPhoto,
-  });
+    callerPhoto
+  };
 
+  // Store the call
+  activeCalls.set(roomName, call);
+
+  // Join the room
   socket.join(roomName);
-  console.log(`Caller ${socket.user.id} joined room ${roomName}`);
-  console.log(`Emitting incoming_video_call to user_${receiverId}`);
+  
+  // Notify receiver
   io.to(`user_${receiverId}`).emit('incoming_video_call', {
     callerId: socket.user.id,
     callerName,
     callerPhoto,
-    roomName,
-    respondentId: receiverId,
+    roomName
   });
 
+  // Notify caller
   socket.emit('call_initiated', { roomName });
 });
-socket.on('answer_video_call', ({ roomName, answer, respondentId, respondentName }) => {
+
+socket.on('answer_video_call', ({ roomName, answer }) => {
   const call = activeCalls.get(roomName);
-  if (!call) {
-    console.log(`Call not found for room: ${roomName}`);
+  if (!call || call.receiverId !== socket.user.id) {
+    console.log(`Invalid answer attempt for room ${roomName}`);
     return;
   }
 
   if (answer) {
-    activeCalls.set(roomName, {
-      ...call,
-      status: 'ongoing',
-      respondentId,
-      respondentName,
-    });
+    // Call accepted
+    call.status = 'ongoing';
+    call.respondentId = socket.user.id;
+    call.respondentName = socket.user.username;
+    activeCalls.set(roomName, call);
 
-    socket.join(roomName); // Receiver joins the room
-    console.log(`Receiver ${respondentId} joined room ${roomName}`);
-    io.to(`user_${call.callerId}`).emit('video_call_accepted', {
+    // Join the room
+    socket.join(roomName);
+
+    // Notify both parties
+    io.to(`user_${call.callerId}`).emit('video_call_accepted', { 
       roomName,
-      isInitiator: true,
-      participantName: respondentName,
-    });
-    io.to(`user_${respondentId}`).emit('video_call_accepted', {
-      roomName,
-      isInitiator: false,
-      participantName: call.callerName,
+      participantName: socket.user.username 
     });
     io.to(roomName).emit('join_video_call', { roomName });
-    console.log(`Call accepted for room: ${roomName}, both users joined`);
   } else {
-    io.to(`user_${call.callerId}`).emit('call_terminated', {
-      roomName,
-      reason: 'Call declined by recipient',
-    });
+    // Call declined
+    io.to(`user_${call.callerId}`).emit('call_declined', { roomName });
     activeCalls.delete(roomName);
-    console.log(`Call declined for room: ${roomName}`);
   }
 });
     socket.on('end_video_call', ({ roomName }) => {
