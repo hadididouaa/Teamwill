@@ -15,7 +15,8 @@ const {
   getAllConversations,
   getUnreadCountsBySender,
   getPsychologists,
-  getCollaborators
+  getCollaborators,  searchMessages,
+  getAllAttachments
 } = require('../controllers/messageController');
 const { uploadFile } = require('../utils/multerConfig');
 
@@ -35,5 +36,6 @@ router.get('/conversations', authenticateToken, getAllConversations);
 router.get('/unread-counts-by-sender', authenticateToken, getUnreadCountsBySender);
 router.get('/psychologists', authenticateToken, getPsychologists);
 router.get('/collaborators', authenticateToken, getCollaborators);
-
+router.get('/search', authenticateToken, searchMessages);
+router.get('/attachments', authenticateToken, getAllAttachments);
 module.exports = router;

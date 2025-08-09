@@ -425,6 +425,72 @@ const getCollaborators = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+const searchMessages = async (req, res) => {
+  try {
+    const { query } = req.query;
+    const userId = req.user.id;
+
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: userId },
+          { receiverId: userId }
+        ],
+        content: {
+          [Op.iLike]: `%${query}%`
+        }
+      },
+      include: [
+        { model: User, as: 'sender', attributes: ['id', 'username', 'photo'] },
+        { model: User, as: 'receiver', attributes: ['id', 'username', 'photo'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+const getAllAttachments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: userId },
+          { receiverId: userId }
+        ],
+        attachments: {
+          [Op.ne]: [] // Non vide
+        }
+      },
+      include: [
+        { model: User, as: 'sender', attributes: ['id', 'username', 'photo'] },
+        { model: User, as: 'receiver', attributes: ['id', 'username', 'photo'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Extraire toutes les pièces jointes
+    const attachments = messages.flatMap(message => 
+      message.attachments.map(attachment => ({
+        ...attachment,
+        messageId: message.id,
+        conversationId: message.senderId === userId ? message.receiverId : message.senderId,
+        sender: message.sender,
+        receiver: message.receiver,
+        sentAt: message.createdAt
+      }))
+    );
+
+    res.json(attachments);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
 
 module.exports = {
   handleMessageAttachments,
@@ -440,5 +506,6 @@ module.exports = {
   getAllConversations,
   getUnreadCountsBySender,
   getPsychologists,
-  getCollaborators
+  getCollaborators,  searchMessages,
+  getAllAttachments
 };

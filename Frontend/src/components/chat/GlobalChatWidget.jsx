@@ -11,6 +11,7 @@ const GlobalChatWidget = () => {
   const {
     user,
     conversations,
+    messages, 
     openChats,
     setOpenChats,
     currentChat,
@@ -19,7 +20,7 @@ const GlobalChatWidget = () => {
     collaborators,
     onlineUsers,
     fetchMessages,
-    startNewChat,
+    startNewChat,markAsRead 
   } = useChatContext();
 
   const [visible, setVisible] = useState(false);
@@ -279,8 +280,8 @@ const initiateChat = async (partner) => {
             position: 'fixed',
             bottom: 24,
             right: 400 + index * 20,
-            width: 350,
-            height: 500,
+            width: 400,
+            height: 600,
             backgroundColor: '#fff',
             border: '1px solid #d9d9d9',
             borderRadius: '4px',

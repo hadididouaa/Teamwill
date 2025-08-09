@@ -9,6 +9,9 @@ import './MessagingPage.css';
 const { Content, Sider } = Layout;
 const { Title, Text } = Typography;
 
+import MessageSearch from '../components/MessageSearch';
+import MessageAttachments from '../components/MessageAttachments';
+
 const MessagingPage = () => {
   const {
     user,
@@ -171,7 +174,25 @@ const MessagingPage = () => {
           ),
         }]
       : []),
+       {
+      key: 'search',
+      label: 'Recherche',
+      children: <MessageSearch onSelectMessage={handleMessageSelect} />,
+    },
+    {
+      key: 'attachments',
+      label: 'Pièces jointes',
+      children: <MessageAttachments />,
+    }
   ];
+
+  const handleMessageSelect = (message) => {
+    // Trouver ou créer la conversation
+    const partnerId = message.senderId === user.id ? message.receiverId : message.senderId;
+    initiateChat({ id: partnerId });
+    // Vous pourriez aussi vouloir faire défiler jusqu'au message sélectionné
+    // ou afficher un aperçu du message dans la fenêtre de chat   
+  };
 
   return (
     <DashboardLayout>

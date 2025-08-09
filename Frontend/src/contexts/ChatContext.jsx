@@ -662,6 +662,15 @@ const markAsRead = async (messageId) => {
       console.error('Erreur collaborateurs:', error);
     }
   }, []);
+  const searchMessages = async (query) => {
+  const response = await api.get(`/api/messages/search?query=${encodeURIComponent(query)}`);
+  return response.data;
+};
+
+const getAllAttachments = async () => {
+  const response = await api.get('/api/messages/attachments');
+  return response.data;
+};
 
   const contextValue = {
     user,
@@ -690,6 +699,8 @@ const markAsRead = async (messageId) => {
     answerCall,
     endVideoCall,
     activeVideoCall,
+    searchMessages,
+  getAllAttachments
   };
 
   useEffect(() => {
