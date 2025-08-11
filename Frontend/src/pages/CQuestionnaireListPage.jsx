@@ -31,7 +31,7 @@ const QuestionnaireListPage = () => {
         const data = await response.json();
         setQuestionnaires(data);
       } catch (error) {
-        console.error("Erreur de chargement", error);
+        console.error("Loading error", error);
       } finally {
         setLoading(false);
       }
@@ -44,7 +44,7 @@ const QuestionnaireListPage = () => {
     <DashboardLayout>
       <div style={{ padding: '24px' }}>
         <Title level={2} style={{ color: greenTheme.primary, marginBottom: '24px' }}>
-          Questionnaires Disponibles
+          Available Questionnaires
         </Title>
         
         {loading ? (
@@ -77,7 +77,7 @@ const QuestionnaireListPage = () => {
                           width: '100%'
                         }}
                       >
-                        Répondre au questionnaire
+                        Answer the Questionnaire
                       </Button>
                     </Link>
                   ]}
@@ -87,7 +87,7 @@ const QuestionnaireListPage = () => {
                   </Text>
                   <div style={{ marginTop: '16px' }}>
                     <Text strong style={{ color: greenTheme.primary }}>
-                      Nombre de questions: 
+                      Number of questions: 
                     </Text>
                     <Text> {questionnaire.questions?.length || 0}</Text>
                   </div>

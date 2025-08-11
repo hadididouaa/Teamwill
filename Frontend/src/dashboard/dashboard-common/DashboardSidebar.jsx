@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const sidebar_data = [
   {
     id: 1,
-    title: "Main Menu",
+    title: "Psychologist",
     sidebar_details: [
       { id: 1, link: "/dashboard", icon: "fas fa-home", title: "Dashboard" },
       { id: 2, link: "/questionnaires/create", icon: "fas fa-plus-circle", title: "Create a questionnaire" },
@@ -105,7 +105,7 @@ const DashboardSidebar = () => {
   // Only show Main Menu for Psychologist role
   const sectionsToDisplay = [];
   if (role === "Psychologue") {
-    const mainMenu = sidebar_data.find((item) => item.title === "Main Menu");
+    const mainMenu = sidebar_data.find((item) => item.title === "Psychologist");
     if (mainMenu) sectionsToDisplay.push(mainMenu);
   }
   // For other roles, keep the original logic if needed

@@ -1,7 +1,7 @@
-// frontenf/src/constants/roles.jsx
+// frontend/src/constants/roles.jsx
 export const USER_ROLES = [
     'Admin', 
-    'Psychologue', 
-    'RH',
-    'Collaborateur'
+    'Psychologist',  // Changed from 'Psychologue'
+    'HR',           // Changed from 'RH'
+    'Collaborator'   // Changed from 'Collaborateur'
 ];

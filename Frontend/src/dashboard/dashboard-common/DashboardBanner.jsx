@@ -23,6 +23,16 @@ const DashboardBanner = ({ style }) => {
       fetchUser();
    }, []);
    
+   // Function to translate roles to English
+   const translateRole = (role) => {
+      switch(role) {
+         case 'Admin': return 'Admin';
+         case 'Psychologue': return 'Psychologist';
+         case 'RH': return 'HR';
+         case 'Collaborateur': return 'Collaborator';
+         default: return role;
+      }
+   };
 
    return (
       <>
@@ -47,10 +57,12 @@ const DashboardBanner = ({ style }) => {
                            borderRadius: "12px",
                            backgroundColor:
                               user?.roleUtilisateur === "Admin"
-                                 ? "#a8b845"       // Red for Admin
-                                 : user?.roleUtilisateur === "Formateur"
-                                 ? "#a8b845"       // Blue for Formateur
-                                 : "#a8b845",      // Green for Apprenant (default)
+                                 ? "#a8b845"
+                                 : user?.roleUtilisateur === "Psychologue"
+                                 ? "#a8b845"
+                                 : user?.roleUtilisateur === "RH"
+                                 ? "#a8b845"
+                                 : "#a8b845", // Default color for Collaborator
                            color: "#fff",
                            fontWeight: "600",
                            fontSize: "0.75rem",
@@ -58,17 +70,15 @@ const DashboardBanner = ({ style }) => {
                            display: "inline-block",
                         }}
                      >
-                        {user?.roleUtilisateur || "Loading..."}
+                        {translateRole(user?.roleUtilisateur) || "Loading..."}
                      </span>
                   </div>
                </div>
             </div>
                {/* Role-based button */}
-               {(user?.roleUtilisateur === "Admin" || user?.roleUtilisateur === "Formateur") && (
+               {(user?.roleUtilisateur === "Admin" || user?.roleUtilisateur === "Psychologue") && (
                   <div className="dashboard__instructor-info-right">
-                     <button className="pill-button" onClick={() => setShowModal(true)}>
-                        {user?.roleUtilisateur === "Admin" ? "ajouter un utilisateur" : "Ajouter une formation"} <BtnArrow />
-                     </button>
+                     
                   </div>
                )}
             </div>

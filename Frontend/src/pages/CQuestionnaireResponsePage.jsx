@@ -31,8 +31,8 @@ const QuestionnaireResponsePage = () => {
         );
         setQuestionnaire(response.data);
       } catch (error) {
-        console.error("Erreur de chargement", error);
-        message.error("Impossible de charger le questionnaire");
+        console.error("Loading error", error);
+        message.error("Failed to load questionnaire");
       } finally {
         setLoading(false);
       }
@@ -41,43 +41,44 @@ const QuestionnaireResponsePage = () => {
     fetchQuestionnaire();
   }, [id]);
 
-const handleSubmit = async (values) => {
-  setSubmitting(true);
-  try {
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/questionnaires/${id}/responses`,
-      {
-        answers: values.answers
-      },
-      { 
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+  const handleSubmit = async (values) => {
+    setSubmitting(true);
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/questionnaires/${id}/responses`,
+        {
+          answers: values.answers
+        },
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         }
+      );
+      
+      if (response.data.success) {
+        setResult(response.data);
+      } else {
+        console.error('Server responded with error:', response.data);
+        message.error(response.data.message || "Error processing your answers");
       }
-    );
-    
-    if (response.data.success) {
-      setResult(response.data);
-    } else {
-      console.error('Server responded with error:', response.data);
-      message.error(response.data.message || "Erreur lors du traitement des réponses");
+    } catch (error) {
+      console.error("Detailed error:", {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      const errorMsg = error.response?.data?.message || 
+                      error.message || 
+                      "Error submitting your answers";
+      message.error(errorMsg);
+    } finally {
+      setSubmitting(false);
     }
-  } catch (error) {
-    console.error("Detailed error:", {
-      message: error.message,
-      response: error.response?.data,
-      stack: error.stack
-    });
-    const errorMsg = error.response?.data?.message || 
-                    error.message || 
-                    "Erreur lors de l'envoi des réponses";
-    message.error(errorMsg);
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
+
   if (loading) return (
     <DashboardLayout>
       <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />
@@ -88,8 +89,8 @@ const handleSubmit = async (values) => {
     <DashboardLayout>
       <Result
         status="404"
-        title="Questionnaire non trouvé"
-        subTitle="Le questionnaire que vous cherchez n'existe pas ou a été supprimé."
+        title="Questionnaire not found"
+        subTitle="The questionnaire you're looking for doesn't exist or has been deleted."
         extra={
           <Button 
             type="primary" 
@@ -99,7 +100,7 @@ const handleSubmit = async (values) => {
               borderColor: greenTheme.secondary
             }}
           >
-            Retour à la liste
+            Back to list
           </Button>
         }
       />
@@ -125,7 +126,7 @@ const handleSubmit = async (values) => {
           <Result
             status="success"
             title="Thank you for your answers!"
-            subTitle={`Votre score total: ${result.totalScore}`}
+            subTitle={`Your total score: ${result.totalScore}`}
             extra={[
               <Button 
                 key="back" 
@@ -135,7 +136,7 @@ const handleSubmit = async (values) => {
                   borderColor: greenTheme.secondary
                 }}
               >
-                Retour aux questionnaires
+                Back to Results
               </Button>
             ]}
           />
@@ -143,7 +144,7 @@ const handleSubmit = async (values) => {
           {result.analysis && (
             <div style={{ marginTop: '24px' }}>
               <Title level={4} style={{ color: greenTheme.primary }}>
-                Analyse:
+                Analysis:
               </Title>
               <Card 
                 title={result.analysis.title}
@@ -160,7 +161,7 @@ const handleSubmit = async (values) => {
                       marginTop: '16px', 
                       color: greenTheme.primary 
                     }}>
-                      Recommandations:
+                      Recommendations:
                     </Title>
                     <Text>{result.analysis.recommendations}</Text>
                   </>
@@ -206,7 +207,7 @@ const handleSubmit = async (values) => {
                     {`${index + 1}. ${question.text}`}
                   </Text>
                 }
-                rules={[{ required: true, message: 'Veuillez sélectionner une réponse' }]}
+                rules={[{ required: true, message: 'Please select an answer' }]}
               >
                 <Radio.Group>
                   {question.options?.map((option) => (
@@ -239,7 +240,7 @@ const handleSubmit = async (values) => {
                   fontSize: '16px'
                 }}
               >
-                {submitting ? 'Envoi en cours...' : 'Soumettre mes réponses'}
+                {submitting ? 'Submitting...' : 'Submit my answers'}
               </Button>
             </Form.Item>
           </Form>
