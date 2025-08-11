@@ -38,6 +38,8 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
       socket.off('call_terminated', handleCallEnded);
     };
   }, [socket, roomName, onEndCall, jitsiApi]);
+  // Ajoutez cet effet pour gérer la fin d'appel automatique
+
 
   useEffect(() => {
     return () => {
@@ -78,7 +80,7 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
     <div style={overlayStyle}>
       <JitsiMeeting
         key={roomName}
-        domain="jitsi.riot.im"
+        domain="meet.jit.si"
         roomName={roomName}
         onApiReady={handleApiReady}
         configOverwrite={{

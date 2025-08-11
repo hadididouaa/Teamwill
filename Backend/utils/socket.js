@@ -1,4 +1,5 @@
 const { Message, User } = require('../db/models');
+const pendingCalls = new Map();
 const initializeSocket = (server) => {
   const io = require('socket.io')(server, {
     cors: {
@@ -54,30 +55,44 @@ const initializeSocket = (server) => {
     // Ajoutez d'autres données initiales si nécessaire
   });
 
-// server/index.js
 socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomName }) => {
   console.log(`Initiating call from ${socket.user.id} to ${receiverId} in room ${roomName}`);
+  
   if (!onlineUsers.has(receiverId)) {
     console.log(`User ${receiverId} is offline`);
     socket.emit('call_error', { message: 'User is offline' });
     return;
   }
 
-  const receiverSocketIds = io.sockets.adapter.rooms.get(`user_${receiverId}`);
-  if (!receiverSocketIds || receiverSocketIds.size === 0) {
-    console.log(`Receiver ${receiverId} is not in user_${receiverId} room`);
-    socket.emit('call_error', { message: 'Receiver not available' });
-    return;
-  }
-
-  activeCalls.set(roomName, {
+  pendingCalls.set(roomName, {
     callerId: socket.user.id,
     receiverId,
     roomName,
-    status: 'pending',
+    callerName: socket.user.username,
+    callerPhoto: socket.user.photo,
     timestamp: new Date(),
-    callerName,
-    callerPhoto,
+    timer: setTimeout(() => {
+      if (pendingCalls.has(roomName)) {
+        console.log(`Call timeout for room ${roomName}`);
+        
+        // Notifier l'appelant que l'appel n'a pas été répondu
+        io.to(`user_${socket.user.id}`).emit('call_not_answered', { 
+          roomName,
+          receiverId,
+          receiverName: onlineUsers.get(receiverId)?.username 
+        });
+        
+        // Notifier le receveur qu'il a manqué un appel
+        io.to(`user_${receiverId}`).emit('missed_call', {
+          roomName,
+          callerId: socket.user.id,
+          callerName: socket.user.username,
+          callerPhoto: socket.user.photo
+        });
+        
+        pendingCalls.delete(roomName);
+      }
+    }, 30000) // 30 secondes timeout seulement pour la notification
   });
 
   socket.join(roomName);
@@ -94,41 +109,42 @@ socket.on('initiate_video_call', ({ receiverId, callerName, callerPhoto, roomNam
   socket.emit('call_initiated', { roomName });
 });
 socket.on('answer_video_call', ({ roomName, answer, respondentId, respondentName }) => {
-  const call = activeCalls.get(roomName);
-  if (!call) {
-    console.log(`Call not found for room: ${roomName}`);
-    return;
-  }
+  const call = pendingCalls.get(roomName);
+  if (!call) return;
+
+  clearTimeout(call.timer);
+  pendingCalls.delete(roomName);
 
   if (answer) {
+    // Ajouter à la liste des appels actifs
     activeCalls.set(roomName, {
       ...call,
-      status: 'ongoing',
       respondentId,
       respondentName,
+      status: 'ongoing'
     });
 
-    socket.join(roomName); // Receiver joins the room
-    console.log(`Receiver ${respondentId} joined room ${roomName}`);
+    // Notifier les deux parties
     io.to(`user_${call.callerId}`).emit('video_call_accepted', {
       roomName,
       isInitiator: true,
-      participantName: respondentName,
+      participantName: respondentName
     });
+    
     io.to(`user_${respondentId}`).emit('video_call_accepted', {
       roomName,
       isInitiator: false,
-      participantName: call.callerName,
+      participantName: call.callerName
     });
+    
+    // Demander aux deux parties de rejoindre la salle Jitsi
     io.to(roomName).emit('join_video_call', { roomName });
-    console.log(`Call accepted for room: ${roomName}, both users joined`);
   } else {
+    // Notifier l'appelant que l'appel a été décliné avec le nom du répondant
     io.to(`user_${call.callerId}`).emit('call_terminated', {
       roomName,
-      reason: 'Call declined by recipient',
+     reason: `${respondentName} has declined your call`
     });
-    activeCalls.delete(roomName);
-    console.log(`Call declined for room: ${roomName}`);
   }
 });
     socket.on('end_video_call', ({ roomName }) => {
@@ -143,7 +159,14 @@ socket.on('answer_video_call', ({ roomName, answer, respondentId, respondentName
         console.log(`Call ended normally for room: ${roomName}`);
       }
     });
-
+socket.on('call_timeout', ({ roomName }) => {
+  if (pendingCalls.has(roomName)) {
+    pendingCalls.delete(roomName);
+  }
+  if (activeCalls.has(roomName)) {
+    activeCalls.delete(roomName);
+  }
+});
     socket.on('send_message', async ({ receiverId, content, attachments = [] }) => {
       try {
         const message = await Message.create({

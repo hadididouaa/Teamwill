@@ -1,9 +1,9 @@
-// frontend/src/components/GlobalChatWidget.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button, Badge, Drawer, Avatar, List, Tabs, Typography, Spin, Empty } from 'antd';
 import { MessageOutlined, CloseOutlined, UserOutlined, TeamOutlined, CommentOutlined, MinusOutlined } from '@ant-design/icons';
 import { useChatContext } from '../../contexts/ChatContext';
 import ChatWindow from '../ChatWindow';
+import { showMissedCallNotification } from './MissedCallNotification';
 
 const { Text } = Typography;
 
@@ -20,7 +20,10 @@ const GlobalChatWidget = () => {
     collaborators,
     onlineUsers,
     fetchMessages,
-    startNewChat,markAsRead 
+    startNewChat,
+    markAsRead,
+    socket,
+    startVideoCall
   } = useChatContext();
 
   const [visible, setVisible] = useState(false);

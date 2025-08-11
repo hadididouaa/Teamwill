@@ -1,8 +1,9 @@
+// frontend/src/contexts/ChatContext.jsx
 import React, { createContext, useState, useEffect, useCallback, useContext, useRef } from 'react';
 import axios from 'axios';
+import { Button } from 'antd';
 import { initSocket, disconnectSocket } from '../utils/socket';
-import { message as antdMessage, notification, Avatar, Button } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { message as antdMessage, notification } from 'antd';
 import callSound from '../assets/sounds/microsoft_teams_call.mp3';
 import VideoCallOverlay from '../components/VideoCallOverlay';
 
@@ -31,10 +32,15 @@ export const ChatProvider = ({ children }) => {
   const [collaborators, setCollaborators] = useState([]);
   const [incomingCalls, setIncomingCalls] = useState([]);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [missedCalls, setMissedCalls] = useState([]);
+  const [activeNotifications, setActiveNotifications] = useState([]);
   
+  const CALL_TIMEOUT = 30000;
+  const CALL_RETRY_LIMIT = 2;
 
   const audioRef = useRef(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  
 
   axios.defaults.withCredentials = true;
   axios.defaults.baseURL = API_URL;
@@ -80,7 +86,32 @@ useEffect(() => {
     prev.map(c => c.id === user.id ? { ...c, isOnline: user.isOnline } : c)
   );
 };
+const answerCall = useCallback((roomName, answer) => {
+  const call = incomingCalls.find(c => c.roomName === roomName);
+  if (!call) return;
 
+  // Fermer toutes les notifications pour cet appel
+  notification.destroy(`call_${roomName}`);
+  setActiveNotifications(prev => prev.filter(k => k !== `call_${roomName}`));
+
+  if (answer) {
+    setActiveVideoCall(roomName);
+  } else {
+    setIncomingCalls(prev => prev.filter(c => c.roomName !== roomName));
+  }
+
+  // Envoyer la réponse au serveur
+  if (socket) {
+    socket.emit('answer_video_call', {
+      roomName,
+      answer,
+      respondentId: user.id,
+      respondentName: user.username,
+    });
+  }
+
+  stopRingtone();
+}, [socket, user, incomingCalls, stopRingtone]);
   const initializeSocket = useCallback(
     (userId) => {
       if (!userId) return null;
@@ -112,12 +143,35 @@ newSocket.on('reconnect', () => {
       });
 
 // Replace the standalone line with:
+// Dans initializeSocket
 newSocket.on('incoming_video_call', ({ roomName, callerId, callerName, callerPhoto }) => {
   console.log('Received incoming_video_call:', { roomName, callerId, callerName, callerPhoto });
+  
+  // Nettoyer les notifications précédentes pour le même appelant
+  setActiveNotifications(prev => {
+    prev.forEach(key => {
+      if (key.startsWith(`missed_call_${callerId}`)) {
+        notification.destroy(key);
+      }
+    });
+    return prev.filter(k => !k.startsWith(`missed_call_${callerId}`));
+  });
+
   setIncomingCalls(prev => [...prev, { roomName, callerId, callerName, callerPhoto }]);
+  
+  // Jouer le son d'appel
   if (audioRef.current) {
     audioRef.current.play().catch(e => console.error('Audio play failed:', e));
   }
+
+  // Fermer automatiquement après 30 secondes
+  const timeout = setTimeout(() => {
+    setIncomingCalls(prev => prev.filter(c => c.roomName !== roomName));
+    notification.destroy(`call_${roomName}`);
+    stopRingtone();
+  }, 30000);
+
+  return () => clearTimeout(timeout);
 });
 
       newSocket.on('call_initiated', ({ roomName }) => {
@@ -157,6 +211,20 @@ newSocket.on('incoming_video_call', ({ roomName, callerId, callerName, callerPho
         setActiveVideoCall(null);
         notification.warning({ message: 'Call ended', description: reason });
       });
+      // Dans initializeSocket
+newSocket.on('call_not_answered', ({ roomName, receiverId, receiverName }) => {
+  console.log('Call was not answered by:', receiverName);
+  stopRingtone();
+  setActiveVideoCall(null);
+  
+  const key = `not_answered_${roomName}`;
+  notification.warning({
+    key,
+    message: 'Call not answered',
+    description: `${receiverName} did not answer your call.`,
+    duration: 5,
+  });
+});
 
       newSocket.on('new_message', (message) => {
         const partnerId = message.sender.id === user?.id ? message.receiver.id : message.sender.id;
@@ -207,99 +275,88 @@ newSocket.on('incoming_video_call', ({ roomName, callerId, callerName, callerPho
     },
     [user, stopRingtone]
   );
-const startVideoCall = useCallback(
-  async (receiverId) => {
-    if (!socket || !user?.id) {
-      console.error('Socket or user not available');
-      notification.error({ message: 'Cannot start call', description: 'Socket or user not available' });
-      return;
-    }
+const startVideoCall = useCallback(async (receiverId) => {
+  // Nettoyer les notifications précédentes
+  setActiveNotifications(prev => {
+    prev.forEach(key => {
+      if (key.startsWith(`missed_call_${receiverId}`)) {
+        notification.destroy(key);
+      }
+    });
+    return prev.filter(k => !k.startsWith(`missed_call_${receiverId}`));
+  });
 
-    if (!onlineUsers.includes(receiverId)) {
-      console.error('Receiver is offline');
-      notification.error({ message: 'Cannot start call', description: 'Receiver is offline' });
-      return;
-    }
+  if (!socket || !user?.id) {
+    notification.error({ message: 'Cannot start call', description: 'Socket or user not available' });
+    return;
+  }
 
-    const roomName = `video_call_${user.id}_${receiverId}_${Date.now()}`;
-    console.log('Starting video call:', { roomName, receiverId });
+  if (!onlineUsers.includes(receiverId)) {
+    notification.error({ message: 'Cannot start call', description: 'Receiver is offline' });
+    return;
+  }
 
-    const attemptCall = (attempts = 3, delay = 1000) => {
-      socket.emit('initiate_video_call', {
-        roomName,
-        callerId: user.id,
-        callerName: user.username,
-        callerPhoto: user.photo,
-        receiverId,
-      });
+  const roomName = `video_call_${user.id}_${receiverId}_${Date.now()}`;
+  console.log('Starting video call:', { roomName, receiverId });
 
-      // Listen for call_initiated or call_error
-      const handleCallInitiated = () => {
-        console.log('Call initiated successfully:', roomName);
-        setActiveVideoCall(roomName);
-      };
+  let callAnswered = false;
 
-      const handleCallError = ({ message }) => {
-        console.error('Call error:', message);
-        if (attempts > 1) {
-          console.log(`Retrying call initiation. Attempts left: ${attempts - 1}`);
-          setTimeout(() => attemptCall(attempts - 1, delay * 2), delay);
-        } else {
-          notification.error({ message: 'Call Failed', description: message });
-        }
-      };
 
-      socket.once('call_initiated', handleCallInitiated);
-      socket.once('call_error', handleCallError);
 
-      // Cleanup listeners if call doesn't succeed within a timeout
-      setTimeout(() => {
-        socket.off('call_initiated', handleCallInitiated);
-        socket.off('call_error', handleCallError);
-      }, 10000); // 10 seconds timeout
-    };
+  socket.once('video_call_accepted', () => {
+    callAnswered = true;
+    clearTimeout(callTimeout);
+  });
 
-    attemptCall();
-    return roomName;
-  },
-  [socket, user, onlineUsers]
-);
-const answerCall = useCallback(
-  async (roomName, accept) => {
-    console.log('Answering call:', { roomName, accept, userId: user?.id });
+  socket.emit('initiate_video_call', {
+    roomName,
+    callerId: user.id,
+    callerName: user.username,
+    callerPhoto: user.photo,
+    receiverId,
+  });
+
+  return roomName;
+}, [socket, user, onlineUsers]);
+// Dans ChatContext.jsx
+useEffect(() => {
+  if (!socket || !user) return;
+
+  const handleMissedCall = ({ roomName, callerId, callerName, callerPhoto }) => {
+    console.log('Received missed call notification');
     stopRingtone();
+    
+    const key = `missed_call_${callerId}_${Date.now()}`;
+    setActiveNotifications(prev => [...prev, key]);
 
-    if (!socket || !user?.id) {
-      console.error('Socket or user not available');
-      return;
-    }
+    notification.warning({
+      key,
+      message: 'Missed Call',
+      description: (
+        <div>
+          <p>You missed a call from {callerName}</p>
+          <Button 
+            type="link" 
+            onClick={() => {
+              startVideoCall(callerId);
+              notification.destroy(key);
+              setActiveNotifications(prev => prev.filter(k => k !== key));
+            }}
+          >
+            Call back
+          </Button>
+        </div>
+      ),
+      duration: 0,
+    });
+  };
 
-    const call = incomingCalls.find((c) => c.roomName === roomName);
-    if (!call) {
-      console.error('Call not found');
-      return;
-    }
+  socket.on('missed_call', handleMissedCall);
 
-    if (accept) {
-      socket.emit('answer_video_call', {
-        roomName,
-        answer: true,
-        respondentId: user.id,
-        respondentName: user.username,
-      });
-      setActiveVideoCall(roomName); // Receiver joins the Jitsi room
-    } else {
-      socket.emit('answer_video_call', {
-        roomName,
-        answer: false,
-        respondentId: user.id,
-      });
-      setIncomingCalls((prev) => prev.filter((c) => c.roomName !== roomName));
-    }
-  },
-  [socket, user, incomingCalls, stopRingtone]
-);
-
+  return () => {
+    socket.off('missed_call', handleMissedCall);
+  };
+}, [socket, user, startVideoCall, stopRingtone]);
 
   const endVideoCall = useCallback(
     (roomName) => {
@@ -433,17 +490,17 @@ const answerCall = useCallback(
   }, [fetchCurrentUser]);
 useEffect(() => {
   console.log('Incoming calls updated:', incomingCalls); // Add this log
-  incomingCalls.forEach((call) => {
-notification.open({
-  key: `call_${call.roomName}`,
-  message: `Incoming Video Call from ${call.callerName}`,
-  description: (
- <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '12px' }}>
-  <Button
-    onClick={() => {
-      answerCall(call.roomName, true);
-      notification.destroy(`call_${call.roomName}`);
-    }}
+incomingCalls.forEach((call) => {
+  notification.open({
+    key: `call_${call.roomName}`,
+    message: `Incoming Video Call from ${call.callerName}`,
+    description: (
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '12px' }}>
+        <Button
+          onClick={() => {
+            answerCall(call.roomName, true);
+            notification.destroy(`call_${call.roomName}`);
+          }}
     style={{
       width: '100px',
       height: '36px',
@@ -459,13 +516,13 @@ notification.open({
       }
     }}
   >
-    Accept
-  </Button>
-  <Button
-    onClick={() => {
-      answerCall(call.roomName, false);
-      notification.destroy(`call_${call.roomName}`);
-    }}
+Accept
+        </Button>
+        <Button
+          onClick={() => {
+            answerCall(call.roomName, false);
+            notification.destroy(`call_${call.roomName}`);
+          }}
     style={{
       width: '100px',
       height: '36px',
@@ -672,53 +729,51 @@ const getAllAttachments = async () => {
   return response.data;
 };
 
-  const contextValue = {
-    user,
-    conversations,
-    openChats,
-    setOpenChats,
-    currentChat,
-    setCurrentChat,
-    messages,
-    setMessages,
-    loading,
-    psychologists,
-    collaborators,
-    onlineUsers,
-    typingStatus,
-    socket,
-    isConnected,
-    fetchConversations,
-    fetchMessages,
-    sendMessage,
-    deleteMessage,
-    markAsRead,
-    startNewChat,
-    sendTypingStatus,
-    startVideoCall,
-    answerCall,
-    endVideoCall,
-    activeVideoCall,
-    searchMessages,
-  getAllAttachments
-  };
+const contextValue = {
+  user,
+  conversations,
+  openChats,
+  setOpenChats,
+  currentChat,
+  setCurrentChat,
+  messages,
+  setMessages,
+  loading,
+  psychologists,
+  collaborators,
+  onlineUsers,
+  typingStatus,
+  socket,
+  isConnected,
+  fetchConversations,
+  fetchMessages,
+  sendMessage,
+  deleteMessage,
+  markAsRead,
+  startNewChat,
+  sendTypingStatus,
+  startVideoCall,
+  answerCall, // Add this
+  endVideoCall,
+  activeVideoCall,
+  searchMessages,
+  getAllAttachments,
+};
 
   useEffect(() => {
     console.log('Active video call state changed:', activeVideoCall);
   }, [activeVideoCall]);
 
-  return (
-    <>
-      <ChatContext.Provider value={contextValue}>
-        {children}
-        {activeVideoCall && (
-          <VideoCallOverlay
-            roomName={activeVideoCall}
-            onEndCall={() => endVideoCall(activeVideoCall)}
-            user={user}
-          />
-        )}
-      </ChatContext.Provider>
-    </>
+ return (
+    <ChatContext.Provider value={contextValue}>
+      {children}
+      {activeVideoCall && (
+        <VideoCallOverlay
+          roomName={activeVideoCall}
+          onEndCall={() => endVideoCall(activeVideoCall)}
+          user={user}
+        />
+      )}
+    </ChatContext.Provider>
   );
 };
