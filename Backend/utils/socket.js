@@ -147,18 +147,19 @@ socket.on('answer_video_call', ({ roomName, answer, respondentId, respondentName
     });
   }
 });
-    socket.on('end_video_call', ({ roomName }) => {
-      const call = activeCalls.get(roomName);
-      if (!call) return;
+socket.on('end_video_call', ({ roomName }) => {
+  const call = activeCalls.get(roomName) || pendingCalls.get(roomName);
+  if (!call) return;
 
-      if ([call.callerId, call.receiverId].includes(socket.user.id)) {
-        const otherUserId = call.callerId === socket.user.id ? call.receiverId : call.callerId;
-        io.to(`user_${otherUserId}`).emit('video_call_ended', { roomName });
-        io.to(roomName).emit('video_call_ended', { roomName });
-        activeCalls.delete(roomName);
-        console.log(`Call ended normally for room: ${roomName}`);
-      }
-    });
+  // Notifier tous les participants
+  io.to(roomName).emit('video_call_ended', { roomName });
+  
+  // Nettoyer les états
+  activeCalls.delete(roomName);
+  pendingCalls.delete(roomName);
+  
+  console.log(`Call ended for room: ${roomName}`);
+});
 socket.on('call_timeout', ({ roomName }) => {
   if (pendingCalls.has(roomName)) {
     pendingCalls.delete(roomName);

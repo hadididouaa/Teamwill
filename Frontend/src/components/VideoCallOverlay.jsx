@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
-import { Spin } from 'antd';
+import { Spin, Button } from 'antd';
 import { JitsiMeeting } from '@jitsi/react-sdk';
+import { CloseOutlined } from '@ant-design/icons';
 
 const overlayStyle = {
   position: 'fixed',
@@ -22,24 +23,51 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
   useEffect(() => {
     if (!socket || !roomName) return;
 
-    const handleCallEnded = () => {
+    const handleParticipantLeft = (participant) => {
+      console.log('Participant left:', participant);
       if (jitsiApi) {
-        jitsiApi.dispose();
-        setJitsiApi(null);
+        const participants = jitsiApi.getParticipantsInfo();
+        if (participants.length <= 1) {
+          endCall();
+        }
       }
-      onEndCall();
     };
 
-    socket.on('video_call_ended', handleCallEnded);
-    socket.on('call_terminated', handleCallEnded);
+    const handleReadyToClose = () => {
+      console.log('Jitsi readyToClose event');
+      endCall();
+    };
+
+    const handleConferenceLeft = () => {
+      console.log('Conference left event');
+      endCall();
+    };
+
+    if (jitsiApi) {
+      jitsiApi.on('participantLeft', handleParticipantLeft);
+      jitsiApi.on('readyToClose', handleReadyToClose);
+      jitsiApi.on('conferenceLeft', handleConferenceLeft);
+    }
 
     return () => {
-      socket.off('video_call_ended', handleCallEnded);
-      socket.off('call_terminated', handleCallEnded);
+      if (jitsiApi) {
+        jitsiApi.off('participantLeft', handleParticipantLeft);
+        jitsiApi.off('readyToClose', handleReadyToClose);
+        jitsiApi.off('conferenceLeft', handleConferenceLeft);
+      }
     };
-  }, [socket, roomName, onEndCall, jitsiApi]);
-  // Ajoutez cet effet pour gérer la fin d'appel automatique
+  }, [jitsiApi, socket, roomName]);
 
+  const endCall = () => {
+    if (socket && roomName) {
+      socket.emit('end_video_call', { roomName });
+    }
+    if (jitsiApi) {
+      jitsiApi.dispose();
+      setJitsiApi(null);
+    }
+    onEndCall();
+  };
 
   useEffect(() => {
     return () => {
@@ -76,6 +104,19 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
     return null;
   }
 
+  const endCallButtonStyle = {
+    position: 'absolute',
+      top: '20px',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 1001,
+    backgroundColor: '#ff4d4f',
+    borderColor: '#ff4d4f',
+    color: 'white',
+    fontWeight: 'bold',
+  };
+
   return (
     <div style={overlayStyle}>
       <JitsiMeeting
@@ -86,13 +127,13 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
         configOverwrite={{
           startWithAudioMuted: false,
           startWithVideoMuted: false,
-          prejoinPageEnabled: false, // Désactive complètement la page de pré-join
+          prejoinPageEnabled: false,
           disableSimulcast: false,
           toolbarButtons: [
             'microphone', 
             'camera', 
             'desktop',
-            'hangup', 
+           
             'settings'
           ],
           constraints: {
@@ -105,7 +146,7 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
             },
           },
           disableProfile: true,
-          enableWelcomePage: false, // Désactive la page de bienvenue
+          enableWelcomePage: false,
           hideConferenceTimer: false,
           enableClosePage: false,
           enableNoisyMicDetection: false,
@@ -200,6 +241,13 @@ const VideoCallOverlay = ({ roomName, onEndCall, user }) => {
           iframeRef.style.width = '100%';
         }}
       />
+      <Button 
+        style={endCallButtonStyle}
+        onClick={() => endCall()}
+        icon={<CloseOutlined />}
+      >
+        End Call
+      </Button>
     </div>
   );
 };

@@ -129,11 +129,14 @@ newSocket.on('reconnect', () => {
   console.log('Socket reconnected for user:', userId);
   newSocket.emit('join_user_room', `user_${userId}`);
 });
-
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
-        setIsConnected(false);
-      });
+// Dans initializeSocket
+newSocket.on('disconnect', () => {
+  console.log('Socket disconnected');
+  setIsConnected(false);
+  if (activeVideoCall) {
+    endVideoCall(activeVideoCall);
+  }
+});
 
 
 
@@ -194,14 +197,14 @@ newSocket.on('incoming_video_call', ({ roomName, callerId, callerName, callerPho
         console.log('Received stop_call_sound');
         stopRingtone();
       });
-
-      newSocket.on('video_call_ended', ({ roomName }) => {
-        console.log('Video call ended for room:', roomName);
-        stopRingtone();
-        notification.destroy(`call_${roomName}`);
-        setIncomingCalls((prev) => prev.filter((call) => call.roomName !== roomName));
-        setActiveVideoCall(null);
-      });
+// Dans initializeSocket
+newSocket.on('video_call_ended', ({ roomName }) => {
+  console.log('Video call ended for room:', roomName);
+  stopRingtone();
+  notification.destroy(`call_${roomName}`);
+  setIncomingCalls((prev) => prev.filter((call) => call.roomName !== roomName));
+  setActiveVideoCall(null);
+});
 
       newSocket.on('call_terminated', ({ roomName, reason }) => {
         console.log('Call terminated:', { roomName, reason });
