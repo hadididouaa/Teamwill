@@ -135,7 +135,6 @@ const logoutUserController = async (req, res) => {
   }
 };
 
-// change mdp first thing
 const updatePasswordController = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const userId = req.user.id;
@@ -152,6 +151,7 @@ const updatePasswordController = async (req, res) => {
     user.mustUpdatePassword = false;
     await user.save();
 
+ 
 
     res.status(200).json({ message: "passwoed changed successfully" });
   } catch (err) {
@@ -651,31 +651,31 @@ const deleteUser = async (req, res) => {
 
 
 const forgotPasswordController = async (req, res) => {
-  const { email } = req.body;
-  try {
+ try {
+    const { email } = req.body;
     const user = await User.findOne({ where: { email } });
-
+    
     if (!user) {
-      return res.status(404).json({ message: "Aucun utilisateur trouvé avec cet email." });
+      return res.status(404).json({ message: "Email not found" });
     }
 
-    const newPassword = generateRandomPassword();
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    user.mdp = hashedPassword;
-    user.mustUpdatePassword = true;
+    const tempPassword = generateTempPassword(); // Implement this function
+    user.mdp = await bcrypt.hash(tempPassword, 10);
     await user.save();
 
-    // 👉 Appel de ta fonction d'envoi de mot de passe temporaire
-    await sendTemporaryPasswordEmail(user.email, newPassword);
-
-   
-
-    res.status(200).json({ message: 'Un nouveau mot de passe a été envoyé à votre email.' });
-
+    try {
+      await sendTemporaryPasswordEmail(email, tempPassword);
+      return res.status(200).json({ message: "Temporary password sent to email" });
+    } catch (emailError) {
+      console.error("Email sending error:", emailError);
+      return res.status(500).json({ 
+        message: "Password was reset but failed to send email",
+        tempPassword: tempPassword // Only for development!
+      });
+    }
   } catch (error) {
-    console.error('Erreur de reset mdp:', error);
-    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 const modifyPasswordController = async (req, res) => {

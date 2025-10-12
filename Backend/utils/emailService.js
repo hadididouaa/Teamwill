@@ -2,11 +2,14 @@ const nodemailer = require('nodemailer');
 
 // Initialize the transporter once and reuse it
 const transporter = nodemailer.createTransport({
-    service: 'gmail',  // Use your email service provider
-    auth: {
-        user: process.env.EMAIL_USER,  // Your email (use environment variables for sensitive data)
-        pass: process.env.EMAIL_PASS   // Your email password or app-specific password
-    }
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false  // Only for development
+  }
 });
 
 // Method to send OTP email

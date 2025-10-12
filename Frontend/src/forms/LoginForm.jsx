@@ -79,7 +79,7 @@ const LoginForm = () => {
         </form>
 
         <span className="forgot-password" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-          Mot de passe oublié
+          Forgot password
         </span>
       </div>
     </div>

@@ -82,17 +82,17 @@ const signIn = () => {
           ) : (
             <FaEye className="icon" onClick={togglePasswordVisibility} style={{ cursor: 'pointer' }} />
           )}
-          <input type={passwordVisible ? 'text' : 'password'} placeholder="Mot de passe" {...register("password")} />
+          <input type={passwordVisible ? 'text' : 'password'} placeholder="Password" {...register("password")} />
         </div>
         {errors.password && <p className="form_error">{errors.password.message}</p>}
-        <button type="submit" className="submit-btn">Valider</button>
+        <button type="submit" className="submit-btn">Validate</button>
       </form>
 
       <span
         className="forgot-password"
         style={{ opacity: 1, cursor: 'pointer', color: '#007BFF' }}
         onClick={() => navigate('/forgot-password', { state: { email: currentEmail } })}
-      >  Mot de passe oublié ?
+      >  Forgot password ?
       </span>
     </div>
   );

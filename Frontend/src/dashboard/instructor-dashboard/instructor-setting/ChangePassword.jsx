@@ -24,7 +24,7 @@ const ChangePassword = () => {
     e.preventDefault();
 
     if (newPassword !== rePassword) {
-      setMessage("Le nouveau mot de passe ne correspond pas.");
+      setMessage("The new password does not match.");
       return;
     }
 
@@ -34,7 +34,7 @@ const ChangePassword = () => {
         { withCredentials: true }
       );
 
-      setMessage("Mot de passe mis à jour avec succès !");
+      setMessage("Password updated successfully!");
       setCurrentPassword('');
       setNewPassword('');
       setRePassword('');
@@ -43,7 +43,7 @@ const ChangePassword = () => {
       navigate('/signin');
     } catch (error) {
       setMessage(
-        error.response?.data?.message || "Erreur serveur."
+        error.response?.data?.message || "Server error."
       );
     }
   };
@@ -52,7 +52,7 @@ const ChangePassword = () => {
     <div className="login-container">
      <img src="assets/img/logo/Image2.png" alt="Logo" width="120" />
       <h2 className="title">Teamwill</h2>
-      <h3 className="subtitle">CHANGEMENT DE MOT DE PASSE</h3>
+      <h3 className="subtitle">PASSWORD CHANGE</h3>
 
       <form onSubmit={handleSubmit}>
         <div className="input-group">
@@ -63,7 +63,7 @@ const ChangePassword = () => {
           )}
           <input
             type={showPassword.current ? 'text' : 'password'}
-            placeholder="Mot de passe actuel"
+            placeholder="Enter your current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
           />
@@ -77,7 +77,7 @@ const ChangePassword = () => {
           )}
           <input
             type={showPassword.new ? 'text' : 'password'}
-            placeholder="Nouveau mot de passe"
+            placeholder="New Password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
@@ -91,7 +91,7 @@ const ChangePassword = () => {
           )}
           <input
             type={showPassword.confirm ? 'text' : 'password'}
-            placeholder="Confirmez le nouveau mot de passe"
+            placeholder="Confirm Password"
             value={rePassword}
             onChange={(e) => setRePassword(e.target.value)}
           />
@@ -101,7 +101,7 @@ const ChangePassword = () => {
           <p style={{ color: message.includes("succès") ? "green" : "red", textAlign: 'center' }}>{message}</p>
         )}
 
-        <button type="submit" className="submit-btn">Mettre à jour</button>
+        <button type="submit" className="submit-btn">Save Changes</button>
       </form>
     </div>
   );

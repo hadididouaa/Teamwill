@@ -96,7 +96,7 @@ const ResetPassword = () => {
       </div>
 
       <div className="buttons">
-        <a href="#" className="forgot-password">Vous n’avez plus accès à ces éléments ?</a>
+        
         <button className="submit-btn" onClick={handleContinue}>Continuer</button>
       </div>
     </div>
