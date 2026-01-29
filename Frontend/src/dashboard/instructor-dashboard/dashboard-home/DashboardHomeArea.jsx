@@ -1,5 +1,5 @@
 import Stats from "./Stats";
-import MiniCourseArea from "../../../components/courses/course/MiniCourseArea";
+
 import Graphics from "./Graphics";
 import QuestionnaireResults from '../../../pages/QuestionnaireResults';
 import UserResultsPage from '../../../pages/UserResultsPage';

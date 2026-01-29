@@ -13,8 +13,7 @@ import InstructorDashboard from '../pages/InstructorDashboard';
 import InstructorProfile from '../pages/InstructorProfile';
 import ChangePassword from '../pages/ChangePassword';
 import WelcomePage from '../pages/WelcomePage';
-import Course from '../pages/Course';
-import MyCourse from '../pages/MyCourse';
+
 import QuestionnaireList from '../pages/QuestionnaireList';
 import CreateQuestionnaire from '../pages/CreateQuestionnaire';
 import QuestionnaireDetail from '../pages/QuestionnaireDetail';
@@ -24,11 +23,11 @@ import QuestionnaireResponsePage from '../pages/CQuestionnaireResponsePage';
 import QuestionnaireResults from '../pages/QuestionnaireResults';
  // Dans votre fichier de routes (ex: AppRoutes.js)
 import UserResultsPage from '../pages/UserResultsPage';
-import AddFormation from '../pages/AddFormation';
+
 import Convert from '../pages/Convert';
 import UserSetting from '../pages/UserSetting';
-import Lesson from '../pages/Lesson';
-import DisplayQuiz from '../components/courses/lesson/displayQuiz';
+
+
 import SignIn from "../pages/Login";
 import Profile from '../pages/Profile.jsx';
 import NotFound from '../pages/NotFound';
@@ -36,7 +35,6 @@ import Congradulation from '../pages/congradulation';
 import Failed from '../pages/Failed';
 import PrivateRoute from '../components/PrivateRoute'; 
 
-import Rewards from '../pages/Rewards';
 const AppNavigation = () => {
   return (
   
@@ -68,7 +66,7 @@ const AppNavigation = () => {
 
           <Route path="/listUsers" element={<InstructorProfile />} />
           <Route path="/editUser/:id" element={<UserSetting />} />
-          <Route path="/Myformations" element={<MyCourse />} />
+        
            <Route path="/QuestionnaireList" element={<QuestionnaireList />} />
             <Route path="/questionnaires/create" element={<CreateQuestionnaire />} />
             
@@ -91,16 +89,7 @@ const AppNavigation = () => {
 
 // Ajoutez cette route
 <Route path="/results" element={<UserResultsPage />} />
-          <Route path="/formations" element={<Course />} />
-          <Route path="/stepper" element={<AddFormation />} />
-          <Route path="/stepper/:id" element={<AddFormation />} />   
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/formation/:id" element={<Lesson />} />
-          <Route path="/passerQuiz/:id" element={<DisplayQuiz />} />
-          <Route path="/convert" element={<Convert />} />
-          <Route path="/congratulation" element={<Congradulation />} />
-          <Route path="/failed" element={<Failed />} />
-         <Route path="/rewards" element={<Rewards />} />
+        
            
         </Route>
 
