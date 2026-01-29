@@ -13,6 +13,78 @@ const UserList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+  const getPhotoUrl = (photo) => {
+    // Normalize photo values: trim whitespace, avoid duplicate /uploads segments,
+    // and handle full URLs or absolute paths returned from various endpoints.
+    if (!photo) return null;
+    if (typeof photo !== 'string') return null;
+    const p = photo.trim();
+    if (!p) return null;
+    // Full URL
+    if (/^https?:\/\//i.test(p)) return p;
+    // Absolute path on server
+    if (p.startsWith('/')) return `${API_URL}${p}`;
+    // Remove any leading slashes just in case
+    const cleaned = p.replace(/^\/+/, '');
+    // If the cleaned path already contains uploads or assets/uploads, don't add another /uploads prefix
+    if (cleaned.startsWith('uploads/') || cleaned.startsWith('assets/uploads/') || cleaned.includes('assets/uploads')) {
+      return `${API_URL}/${cleaned}`;
+    }
+    // Default: assume it's a filename stored in uploads
+    return `${API_URL}/uploads/${cleaned}`;
+  };
+
+  // Avatar component: tries a normal <img>, and if that fails (likely due to protected route / auth),
+  // fetches the image via axios withCredentials and uses a blob URL so cookies are included.
+  const UserAvatar = ({ photo, alt, size = 48 }) => {
+    const [src, setSrc] = useState(getPhotoUrl(photo) || '/assets/default-avatar.png');
+    const [blobUrl, setBlobUrl] = useState(null);
+
+    useEffect(() => {
+      const resolved = getPhotoUrl(photo) || '/assets/default-avatar.png';
+      setSrc(resolved);
+      return () => {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [photo]);
+
+    const fetchWithCredentials = async () => {
+      const url = getPhotoUrl(photo);
+      if (!url) return;
+      try {
+        const res = await axios.get(url, { withCredentials: true, responseType: 'blob' });
+        const objectUrl = URL.createObjectURL(res.data);
+        setBlobUrl(objectUrl);
+        setSrc(objectUrl);
+      } catch (e) {
+        console.warn('UserAvatar: axios fetch failed for', url, e?.message || e);
+        setSrc('/assets/default-avatar.png');
+      }
+    };
+
+    return (
+      <img
+        src={src}
+        alt={alt}
+        width={size}
+        height={size}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
+        onError={(e) => {
+          // if native load fails, try fetching with credentials once
+          e.currentTarget.onerror = null;
+          if (src && !src.includes('default-avatar')) {
+            fetchWithCredentials();
+          } else {
+            e.currentTarget.src = '/assets/default-avatar.png';
+          }
+        }}
+      />
+    );
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -120,11 +192,7 @@ const UserList = () => {
                     <tr key={user.id} className="user-row">
                       <td>
                         <div className="user-info">
-                          <img
-                            src={user.photo ? `${import.meta.env.VITE_API_URL}/uploads/${user.photo}` : '/assets/default-avatar.png'}
-                            alt={user.username}
-                            className="user-avatar"
-                          />
+                          <UserAvatar photo={user.photo} alt={user.username} size={48} />
                           <div className="user-details">
                             <h6 className="username">{user.username}</h6>
                             <p className="email">{user.email}</p>

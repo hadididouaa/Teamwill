@@ -10,6 +10,16 @@ const ProfileContent = ({ style }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [phoneError, setPhoneError] = useState("");
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+  const getPhotoUrl = (photo) => {
+    if (!photo) return "http://localhost:3000/assets/uploads/1746128922729-855346037.png";
+    if (typeof photo !== 'string') return "http://localhost:3000/assets/uploads/1746128922729-855346037.png";
+    if (photo.startsWith('http')) return photo;
+    if (photo.startsWith('/')) return `${API_URL}${photo}`;
+    return `${API_URL}/uploads/${photo}`;
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -111,6 +121,7 @@ const handleSave = async () => {
             )}
           </button>
         </div>
+
         {errorMsg && <div className="error-message">{errorMsg}</div>}
       </div>
 
@@ -118,11 +129,7 @@ const handleSave = async () => {
         <div className="profile-picture-section">
           <div className="profile-avatar-container">
             <img
-              src={
-                user?.photo
-                  ? user.photo
-                  : "http://localhost:3000/assets/uploads/1746128922729-855346037.png"
-              }
+              src={getPhotoUrl(user?.photo)}
               alt="profile"
               className="profile-avatar"
             />

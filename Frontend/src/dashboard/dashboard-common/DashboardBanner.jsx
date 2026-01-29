@@ -7,6 +7,16 @@ const DashboardBanner = ({ style }) => {
    const [user, setUser] = useState(null);
    const [showModal, setShowModal] = useState(false);
 
+   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+   const getPhotoUrl = (photo) => {
+      if (!photo) return null;
+      if (typeof photo !== 'string') return null;
+      if (photo.startsWith('http')) return photo;
+      if (photo.startsWith('/')) return `${API_URL}${photo}`;
+      return `${API_URL}/uploads/${photo}`;
+   };
+
    useEffect(() => {
       const fetchCurrentUser = async () => {
          try {
@@ -35,7 +45,29 @@ const DashboardBanner = ({ style }) => {
             <div className="dashboard__instructor-info">
                <div className="dashboard__instructor-info-left">
                   <div className="thumb">
-                     <img src={user?.photo || "/assets/img/user.png"} alt="User" />
+                     {/* avatar: use background-image for consistent cover behaviour and show initials fallback */}
+                     {getPhotoUrl(user?.photo) ? (
+                        <div
+                           className="avatar"
+                           role="img"
+                           aria-label={user?.username || user?.email || 'User avatar'}
+                           style={{
+                              backgroundImage: `url(${getPhotoUrl(user?.photo)})`,
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: '50%',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              border: '2px solid var(--tg-common-color-white)',
+                              padding: '4px',
+                              boxSizing: 'border-box',
+                           }}
+                        />
+                     ) : (
+                        <div className="avatar avatar--fallback">
+                           <img src="/assets/img/user.png" alt="User" />
+                        </div>
+                     )}
                   </div>
                   <div className="content">
                      <h4 className="title">{user?.username || user?.email || "Loading..."}</h4>
@@ -46,10 +78,10 @@ const DashboardBanner = ({ style }) => {
                               borderRadius: "12px",
                               backgroundColor:
                                  user?.roleUtilisateur === "Admin"
-                                    ? "#ff4d4f"
+                                    ? "#a8b845"
                                     : user?.roleUtilisateur === "Psychologue"
-                                    ? "#1890ff"
-                                    : "#52c41a",
+                                    ? "#a8b845"
+                                    : "#a8b845",
                               color: "#fff",
                               fontWeight: "600",
                               fontSize: "0.75rem",
