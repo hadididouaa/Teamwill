@@ -2,18 +2,13 @@ const menu_data = [
     {   
         id: 1,
         title: "Dashboard",
-        link: "/instructor-dashboard",
-        roles: ["Formateur"],  
+        link: "/dashboard",
+        roles: ["Admin"],  
     },
-    {
-        id: 2,
-        title: "Formations",
-        link: "/formations",    
-        roles: ["Admin", "Apprenant"],  
-    },
+   
     {
         id: 3,
-        title: "Utilisateurs",
+        title: "Users",
         link: "/listUsers",
         roles: ["Admin", "RH"],  
     },

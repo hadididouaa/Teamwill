@@ -654,12 +654,12 @@ const forgotPasswordController = async (req, res) => {
  try {
     const { email } = req.body;
     const user = await User.findOne({ where: { email } });
-    
+
     if (!user) {
       return res.status(404).json({ message: "Email not found" });
     }
 
-    const tempPassword = generateTempPassword(); // Implement this function
+    const tempPassword = generateRandomPassword(); // Use existing function
     user.mdp = await bcrypt.hash(tempPassword, 10);
     await user.save();
 

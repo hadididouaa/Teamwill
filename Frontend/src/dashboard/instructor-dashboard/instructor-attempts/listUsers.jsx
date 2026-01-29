@@ -69,6 +69,11 @@ const UserList = () => {
     }
   };
 
+  // Cancel delete action
+  const cancelDelete = () => {
+    setConfirmDelete(null);
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setSelectedUser(null);
@@ -115,13 +120,11 @@ const UserList = () => {
                     <tr key={user.id} className="user-row">
                       <td>
                         <div className="user-info">
-                          {user.photo && (
-                            <img
-                              src={`${import.meta.env.VITE_API_URL}${user.photo}`}
-                              alt={user.username}
-                              className="user-avatar"
-                            />
-                          )}
+                          <img
+                            src={user.photo ? `${import.meta.env.VITE_API_URL}/uploads/${user.photo}` : '/assets/default-avatar.png'}
+                            alt={user.username}
+                            className="user-avatar"
+                          />
                           <div className="user-details">
                             <h6 className="username">{user.username}</h6>
                             <p className="email">{user.email}</p>
@@ -139,7 +142,7 @@ const UserList = () => {
                         </span>
                       </td>
                       <td>
-                        <span className={`role-badge ${user.roleUtilisateur.toLowerCase()}`}>
+                        <span className={`role-badge ${(user.roleUtilisateur || '').toLowerCase()}`}>
                           {user.roleUtilisateur}
                         </span>
                       </td>

@@ -1,38 +1,27 @@
 import BtnArrow from "../../svg/BtnArrow";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
-import RegistrationArea from "../../components/inner-pages/registration/RegistrationArea"
+import RegistrationArea from "../../components/inner-pages/registration/RegistrationArea";
 
 const DashboardBanner = ({ style }) => {
    const [user, setUser] = useState(null);
    const [showModal, setShowModal] = useState(false);
 
    useEffect(() => {
-      const fetchUser = async () => {
+      const fetchCurrentUser = async () => {
          try {
             const response = await axios.get(`${import.meta.env.VITE_API_URL}/users/getOnce`, {
                withCredentials: true,
             });
-   
             setUser(response.data);
          } catch (error) {
-            console.error("Failed to fetch user:", error);
+            console.error("Failed to fetch current user:", error);
          }
       };
-   
-      fetchUser();
+
+      fetchCurrentUser();
    }, []);
-   
-   // Function to translate roles to English
-   const translateRole = (role) => {
-      switch(role) {
-         case 'Admin': return 'Admin';
-         case 'Psychologue': return 'Psychologist';
-         case 'RH': return 'HR';
-         case 'Collaborateur': return 'Collaborator';
-         default: return role;
-      }
-   };
 
    return (
       <>
@@ -50,49 +39,69 @@ const DashboardBanner = ({ style }) => {
                      <img src={user?.photo || "/assets/img/user.png"} alt="User" />
                   </div>
                   <div className="content">
-                     <h4 className="title" >{user?.username || user?.email || "Loading..."}</h4>
-                     <div className="review__wrap review__wrap-two">
-                     <span style={{
-                           padding: "4px 10px",
-                           borderRadius: "12px",
-                           backgroundColor:
-                              user?.roleUtilisateur === "Admin"
-                                 ? "#a8b845"
-                                 : user?.roleUtilisateur === "Psychologue"
-                                 ? "#a8b845"
-                                 : user?.roleUtilisateur === "RH"
-                                 ? "#a8b845"
-                                 : "#a8b845", // Default color for Collaborator
-                           color: "#fff",
-                           fontWeight: "600",
-                           fontSize: "0.75rem",
-                           textTransform: "uppercase",
-                           display: "inline-block",
-                        }}
-                     >
-                        {translateRole(user?.roleUtilisateur) || "Loading..."}
-                     </span>
+                     <h4 className="title">{user?.username || user?.email || "Loading..."}</h4>
+                     <div className="review__wrap review__wrap-two" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                        <span
+                           style={{
+                              padding: "4px 10px",
+                              borderRadius: "12px",
+                              backgroundColor:
+                                 user?.roleUtilisateur === "Admin"
+                                    ? "#ff4d4f"
+                                    : user?.roleUtilisateur === "Psychologue"
+                                    ? "#1890ff"
+                                    : "#52c41a",
+                              color: "#fff",
+                              fontWeight: "600",
+                              fontSize: "0.75rem",
+                              textTransform: "uppercase",
+                              display: "inline-block",
+                           }}
+                        >
+                           {user?.roleUtilisateur || "Loading..."}
+                        </span>
+
+                        {/* optional extra info line if available */}
+                        {(user?.Grade?.name || user?.Profil?.name || user?.PracticeSolution?.name) && (
+                           <div
+                              style={{
+                                 marginTop: "8px",
+                                 fontSize: "0.85rem",
+                                 color: "#ffffff",
+                                 fontWeight: "400",
+                              }}
+                           >
+                              {`${user?.Grade?.name || "-"}`} / {`${user?.Profil?.name || "-"}`} / {`${user?.PracticeSolution?.name || "-"}`}
+                           </div>
+                        )}
+                     </div>
                   </div>
                </div>
-            </div>
-               {/* Role-based button */}
+
                {(user?.roleUtilisateur === "Admin" || user?.roleUtilisateur === "Psychologue") && (
                   <div className="dashboard__instructor-info-right">
-                     
+                     {user?.roleUtilisateur === "Admin" ? (
+                        <button className="pill-button" onClick={() => setShowModal(true)}>
+                           ajouter un utilisateur <BtnArrow />
+                        </button>
+                     ) : (
+                        <Link to="/stepper" className="pill-button" style={{ textDecoration: "none" }}>
+                           Ajouter une formation <BtnArrow />
+                        </Link>
+                     )}
                   </div>
                )}
             </div>
          </div>
 
-         {/* Modal */}
          {showModal && (
             <div className="modal-overlay" onClick={() => setShowModal(false)}>
                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                  <button className="close-btn" onClick={() => setShowModal(false)}>✕</button>
-                  
-                 {/* Show RegistrationArea only for Admin */}
+                  <button className="close-btn" onClick={() => setShowModal(false)}>
+                     ✕
+                  </button>
                   {user?.roleUtilisateur === "Admin" && <RegistrationArea />}
-                  </div>
+               </div>
             </div>
          )}
       </>
