@@ -31,6 +31,7 @@ const sidebar_data = [
     id: 3,
     title: "Administration",
     sidebar_details: [
+      { id: 1, link: "/dashboard", icon: "fas fa-home", title: "Dashboard" },
       { id: 11, link: "/listUsers", icon: "fas fa-users-cog", title: "User management" },
 
        { id: 13, link: "/QuestionnaireList", icon: "fas fa-list", title: "Questionnaires" },

@@ -1,6 +1,5 @@
 import BtnArrow from "../../svg/BtnArrow";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
 import RegistrationArea from "../../components/inner-pages/registration/RegistrationArea";
 
@@ -78,17 +77,11 @@ const DashboardBanner = ({ style }) => {
                   </div>
                </div>
 
-               {(user?.roleUtilisateur === "Admin" || user?.roleUtilisateur === "Psychologue") && (
+               {user?.roleUtilisateur === "Admin" && (
                   <div className="dashboard__instructor-info-right">
-                     {user?.roleUtilisateur === "Admin" ? (
-                        <button className="pill-button" onClick={() => setShowModal(true)}>
-                           ajouter un utilisateur <BtnArrow />
-                        </button>
-                     ) : (
-                        <Link to="/stepper" className="pill-button" style={{ textDecoration: "none" }}>
-                           Ajouter une formation <BtnArrow />
-                        </Link>
-                     )}
+                     <button className="pill-button" onClick={() => setShowModal(true)}>
+                        ajouter un utilisateur <BtnArrow />
+                     </button>
                   </div>
                )}
             </div>
