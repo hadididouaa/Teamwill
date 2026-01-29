@@ -9,7 +9,7 @@ const UserSettingContent = ({ userId, style }) => {
       <div className="col-lg-9">
          <div className="dashboard__content-wrap">
             <div className="dashboard__content-title">
-               <h4 className="title">Modifier utilisateur</h4>
+               <h4 className="title">Edit User</h4>
             </div>
             <div className="row">
                <div className="col-lg-12">

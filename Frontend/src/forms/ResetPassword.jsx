@@ -16,10 +16,10 @@ const ResetPassword = () => {
           withCredentials: true,
         });
         setEmail(response.data.email);
-        console.log("Email récupéré du token cookie:", response.data.email);
+        console.log("Email retrieved from cookie token:", response.data.email);
       } catch (error) {
-        console.error("Erreur lors de la récupération de l'utilisateur:", error);
-        alert("Impossible de récupérer les informations de l'utilisateur.");
+        console.error("Error fetching authenticated user:", error);
+        alert("Unable to retrieve user information.");
       }
     };
 
@@ -31,7 +31,7 @@ const ResetPassword = () => {
       withCredentials: true,
     };
 
-    try {
+      try {
       if (method === 'email') {
         const response = await axios.post( `${import.meta.env.VITE_API_URL}/otp/generate-otp`,
           { email }, config );      
@@ -39,14 +39,14 @@ const ResetPassword = () => {
         if (response.status === 200) {
           navigate('/otpverification', { state: { method: 'email' } });
         } else {
-          alert("Erreur lors de l'envoi de l'OTP.");
+          alert("Error sending OTP.");
         }
       } else if (method === 'qrcode') {
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/otp/generate-secret`, config);
       
         if (response.status === 200) {
           console.log("QR Code URL:", response.data.qrCodeUrl); // Log the URL
-          console.log("Réponse complète backend:", response.data);  
+          console.log("Full backend response:", response.data);  
           navigate('/qrcodedisplay', {
             state: {
               method: 'qrcode',
@@ -55,19 +55,19 @@ const ResetPassword = () => {
             }
           });
         } else {
-          alert("Erreur lors de la génération du QR Code.");
+          alert("Error generating QR Code.");
         }
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      alert("Erreur de connexion au serveur.");
+      console.error('Error:', error);
+      alert("Server connection error.");
     }
   };
 
   return (
     <div className="login-container">
       <img src="assets/img/logo/Image2.png" alt="Logo" width="120" />
-      <p className="subtitle">Comment voulez-vous recevoir votre code ?</p>
+  <p className="subtitle">How would you like to receive your code?</p>
 
       <div className="option-group">
         <label className="option">
@@ -79,7 +79,7 @@ const ResetPassword = () => {
             onChange={() => setMethod('email')}
           />
           <FaEnvelope className="icon" />
-          <span>Utiliser mon e-mail</span>
+          <span>Use my email</span>
         </label>
 
         <label className="option">
@@ -91,13 +91,13 @@ const ResetPassword = () => {
             onChange={() => setMethod('qrcode')}
           />
           <FaQrcode className="icon" />
-          <span>Utiliser un QR Code</span>
+          <span>Use a QR Code</span>
         </label>
       </div>
 
       <div className="buttons">
         
-        <button className="submit-btn" onClick={handleContinue}>Continuer</button>
+  <button className="submit-btn" onClick={handleContinue}>Continue</button>
       </div>
     </div>
   );

@@ -18,8 +18,8 @@ const OTPVerification = () => {
         });
         setEmail(response.data.email);
       } catch (error) {
-        console.error("Erreur lors de la récupération de l'email :", error);
-        alert("Impossible de récupérer l'e-mail.");
+        console.error("Error fetching email:", error);
+        alert("Unable to retrieve email.");
       }
     };
 
@@ -29,7 +29,7 @@ const OTPVerification = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!otp) {
-      alert('Veuillez entrer le code OTP');
+      alert('Please enter the OTP code');
       return;
     }
 
@@ -45,7 +45,7 @@ const OTPVerification = () => {
         navigate('/welcome');
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Erreur lors de la vérification du code';
+      const message = error.response?.data?.message || 'Error verifying code';
       alert(message);
     }
   };
@@ -54,10 +54,10 @@ const OTPVerification = () => {
     <div className="login-container">
       <img src="assets/img/logo/Image2.png" alt="Logo" width="120" />
       <h2 className="title">Teamwill</h2>
-      <h3 className="subtitle">VÉRIFICATION PAR EMAIL</h3>
+      <h3 className="subtitle">Email Verification</h3>
 
       <p className="text-white text-sm mb-4">
-        Un code a été envoyé à <strong>{email}</strong>
+        A code has been sent to <strong>{email}</strong>
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -65,7 +65,7 @@ const OTPVerification = () => {
           <FaLock className="icon" />
           <input
             type={showOtp ? 'text' : 'password'}
-            placeholder="Entrez le code OTP"
+            placeholder="Enter the OTP code"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
           />
@@ -78,10 +78,10 @@ const OTPVerification = () => {
           </span>
         </div>
 
-        <button type="submit" className="submit-btn">Vérification</button>
+        <button type="submit" className="submit-btn">Verify</button>
       </form>
 
-      <a href="/signin" className="forgot-password">Retour à la connexion</a>
+      <a href="/signin" className="forgot-password">Back to sign in</a>
     </div>
   );
 };

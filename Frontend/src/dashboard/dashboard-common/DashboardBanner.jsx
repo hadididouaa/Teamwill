@@ -80,7 +80,7 @@ const DashboardBanner = ({ style }) => {
                {user?.roleUtilisateur === "Admin" && (
                   <div className="dashboard__instructor-info-right">
                      <button className="pill-button" onClick={() => setShowModal(true)}>
-                        ajouter un utilisateur <BtnArrow />
+                        Add new user <BtnArrow />
                      </button>
                   </div>
                )}

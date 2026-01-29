@@ -27,7 +27,7 @@ const RegistrationForm = () => {
    
   const onSubmit = async (data) => {
   try {
-    // Send data without the password field (mdp is generated on the backend)
+    // Send data without the password field (password is generated on the backend)
     const response = await axios.post(
       `${import.meta.env.VITE_API_URL}/users/register`,
       {
@@ -79,7 +79,7 @@ const RegistrationForm = () => {
           <div className="form-grp select">
             <label htmlFor="roleUtilisateur">Role</label>
             <select {...register("roleUtilisateur")} id="roleUtilisateur">
-              <option value="">-- choisir un rôle --</option>
+                <option value="">-- choose a role --</option>
               {USER_ROLES.map(role => (
                 <option key={role} value={role}>
                   {role}
@@ -89,9 +89,9 @@ const RegistrationForm = () => {
             <p className="form_error">{errors.roleUtilisateur?.message}</p>
           </div>
     
-          <button type="submit" className="btn btn-two arrow-btn">
-            Enregistrer <BtnArrow />
-          </button>
+            <button type="submit" className="btn btn-two arrow-btn">
+              Save <BtnArrow />
+            </button>
         </form>
       </div>
     );

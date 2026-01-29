@@ -15,6 +15,14 @@ const UserSettingProfile = ({ userId, style }) => {
     photo: null
   });
 
+  // Map enum values (French) to English labels for display
+  const ROLE_LABELS = {
+    Admin: 'Admin',
+    Psychologue: 'Psychologist',
+    RH: 'HR',
+    Collaborateur: 'Collaborator',
+  };
+
   useEffect(() => {
     if (userId) {
       axios
@@ -87,17 +95,17 @@ const UserSettingProfile = ({ userId, style }) => {
             </div>
 
             <div className="col-md-6">
-              <label htmlFor="roleUtilisateur" className="form-label">rôle d'utilisateur</label>
-              <select id="roleUtilisateur" className="form-select" value={formValues.roleUtilisateur} onChange={handleChange}>
-                <option value="">-- choisir rôle --</option>
+              <label htmlFor="roleUtilisateur" className="form-label">User role</label>
+              <select id="roleUtilisateur" className="form-select" value={formValues.roleUtilisateur} onChange={handleChange} aria-label="User role">
+                <option value="">-- choose a role --</option>
                 {USER_ROLES.map((role) => (
-                  <option key={role} value={role}>{role}</option>
+                  <option key={role} value={role}>{ROLE_LABELS[role] || role}</option>
                 ))}
               </select>
             </div>
 
             <div className="col-md-6">
-              <label htmlFor="tel" className="form-label">numéro de télephone</label>
+              <label htmlFor="tel" className="form-label">Phone number</label>
               <input id="tel" type="text" className="form-control" value={formValues.tel} onChange={handleChange} />
             </div>
 
@@ -109,7 +117,7 @@ const UserSettingProfile = ({ userId, style }) => {
 
           <div className="mt-4 text-end">
             <button type="submit" className="pill-button">
-              Enregistrer
+              Save
             </button>
           </div>
         </form>
