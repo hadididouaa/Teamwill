@@ -575,7 +575,7 @@ Accept
       setConversations(conversationsWithStatus);
     } catch (error) {
       console.error('Erreur conversations:', error);
-      antdMessage.error('Erreur chargement conversations');
+      ;
     } finally {
       setLoading(false);
     }

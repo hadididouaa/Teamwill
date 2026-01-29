@@ -26,6 +26,12 @@ const GlobalChatWidget = () => {
     startVideoCall
   } = useChatContext();
 
+  // Only show the global chat widget for Psychologues and Collaborateurs
+  const allowedRoles = ["Psychologue", "Collaborateur"];
+  if (!user || !allowedRoles.includes(user.roleUtilisateur)) {
+    return null;
+  }
+
   const [visible, setVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('conversations');
   const [loadingChat, setLoadingChat] = useState(false);
