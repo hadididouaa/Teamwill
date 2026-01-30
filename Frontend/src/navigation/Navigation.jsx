@@ -90,7 +90,7 @@ const AppNavigation = () => {
 // Ajoutez cette route
 <Route path="/results" element={<UserResultsPage />} />
         
-           
+            <Route path="/profile" element={<Profile />} />
         </Route>
 
         {/* 404 */}
